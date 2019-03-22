@@ -1,14 +1,9 @@
 import { DebugElement } from '@angular/core';
 import { ComponentFixture } from '@angular/core/testing';
+import { createTestContext } from '@delon/testing';
 import { deepCopy } from '@delon/util';
-import {
-  builder,
-  TestFormComponent,
-  SFPage,
-  SCHEMA,
-} from '../../../spec/base.spec';
+import { configureSFTestSuite, SFPage, TestFormComponent } from '../../../spec/base.spec';
 import { SFSchema } from '../../../src/schema/index';
-import { SFUISchemaItem, SFUISchema } from '../../../src/schema/ui';
 
 describe('form: widget: array', () => {
   let fixture: ComponentFixture<TestFormComponent>;
@@ -31,8 +26,13 @@ describe('form: widget: array', () => {
     },
   };
 
-  beforeEach(() =>
-    ({ fixture, dl, context, page } = builder({ detectChanges: false })));
+  configureSFTestSuite();
+
+  beforeEach(() => {
+    ({ fixture, dl, context } = createTestContext(TestFormComponent));
+    page = new SFPage(context.comp);
+    page.prop(dl, context, fixture);
+  });
 
   it('should be add item', () => {
     page
@@ -80,7 +80,7 @@ describe('form: widget: array', () => {
         .checkCount('.sf-array-item', 0)
         .add()
         .checkCount('.sf-array-item', 1)
-        .checkCount(`.sf-array-container [data-index="0"] .remove`, 0);
+        .checkCount(`.sf__array-container [data-index="0"] .remove`, 0);
     });
   });
   describe('#default data', () => {
@@ -101,13 +101,13 @@ describe('form: widget: array', () => {
       const data = [{ a: 'a1' }, { a: 'a2' }];
       const s = deepCopy(schema) as SFSchema;
       s.properties.arr.default = data;
-      page.newSchema(s)
-          .checkCount('.sf-array-item', data.length)
-          .add()
-          .checkCount('.sf-array-item', data.length + 1)
-          .reset()
-          .checkCount('.sf-array-item', data.length)
-          ;
+      page
+        .newSchema(s)
+        .checkCount('.sf-array-item', data.length)
+        .add()
+        .checkCount('.sf-array-item', data.length + 1)
+        .reset()
+        .checkCount('.sf-array-item', data.length);
     });
   });
 });

@@ -1,10 +1,11 @@
 import { DebugElement } from '@angular/core';
 import { ComponentFixture } from '@angular/core/testing';
+import { createTestContext } from '@delon/testing';
 import { deepCopy } from '@delon/util';
-import { builder, TestFormComponent, SFPage, SCHEMA } from './base.spec';
-import { SFSchema } from '../src/schema/index';
-import { SFUISchemaItem, SFUISchema } from '../src/schema/ui';
 import { ObjectProperty } from '../src/model/object.property';
+import { SFSchema } from '../src/schema/index';
+import { SFUISchema, SFUISchemaItem } from '../src/schema/ui';
+import { configureSFTestSuite, SFPage, TestFormComponent } from './base.spec';
 
 describe('form: schema', () => {
   let fixture: ComponentFixture<TestFormComponent>;
@@ -12,9 +13,17 @@ describe('form: schema', () => {
   let context: TestFormComponent;
   let page: SFPage;
 
-  beforeEach(() => ({ fixture, dl, context, page } = builder()));
+  configureSFTestSuite();
+
+  beforeEach(() => {
+    ({ fixture, dl, context } = createTestContext(TestFormComponent));
+    fixture.detectChanges();
+    page = new SFPage(context.comp);
+    page.prop(dl, context, fixture);
+  });
 
   describe('[cover schema]', () => {
+    beforeEach(() => spyOn(console, 'warn'));
     it('should be using select widget when not ui and enum exists', () => {
       page
         .newSchema({
@@ -152,9 +161,7 @@ describe('form: schema', () => {
         it('should be has $items when is array', () => {
           const schema = deepCopy(arrSchema) as SFSchema;
           schema.properties.name.ui = deepCopy(arrUI);
-          page
-            .newSchema(schema)
-            .checkUI('/name', 'grid.arraySpan', arrUI.grid.arraySpan);
+          page.newSchema(schema).checkUI('/name', 'grid.arraySpan', arrUI.grid.arraySpan);
         });
       });
       describe('[#via ui property]', () => {
@@ -166,9 +173,7 @@ describe('form: schema', () => {
               ...deepCopy(arrUI),
             },
           };
-          page
-            .newSchema(schema, uiSchema)
-            .checkUI('/name', 'grid.arraySpan', arrUI.grid.arraySpan);
+          page.newSchema(schema, uiSchema).checkUI('/name', 'grid.arraySpan', arrUI.grid.arraySpan);
         });
       });
     });
@@ -220,10 +225,7 @@ describe('form: schema', () => {
             login_type: {
               type: 'string',
               title: '登录方式',
-              enum: [
-                { label: '手机', value: 'mobile' },
-                { label: '账密', value: 'account' },
-              ],
+              enum: [{ label: '手机', value: 'mobile' }, { label: '账密', value: 'account' }],
               default: 'mobile',
               ui: {
                 widget: 'radio',
@@ -254,9 +256,7 @@ describe('form: schema', () => {
         })
         .checkCount('.j-mobile', 1)
         .checkCount('.j-name', 0);
-      const labels = page
-        .getEl('.j-login_type nz-radio-group')
-        .querySelectorAll('label');
+      const labels = page.getEl('.j-login_type nz-radio-group').querySelectorAll('label');
       expect(labels.length).toBe(2);
       labels[1].click();
       page.checkCount('.j-mobile', 0).checkCount('.j-name', 1);
@@ -268,10 +268,7 @@ describe('form: schema', () => {
             login_type: {
               type: 'string',
               title: '登录方式',
-              enum: [
-                { label: '手机', value: 'mobile' },
-                { label: '账密', value: 'account' },
-              ],
+              enum: [{ label: '手机', value: 'mobile' }, { label: '账密', value: 'account' }],
               default: 'mobile',
               ui: {
                 widget: 'radio',
@@ -299,9 +296,7 @@ describe('form: schema', () => {
         })
         .checkCount('.j-mobile', 1)
         .checkCount('.j-name', 1);
-      const labels = page
-        .getEl('.j-login_type nz-radio-group')
-        .querySelectorAll('label');
+      const labels = page.getEl('.j-login_type nz-radio-group').querySelectorAll('label');
       expect(labels.length).toBe(2);
       labels[1].click();
       page.checkCount('.j-mobile', 0).checkCount('.j-name', 1);
@@ -322,10 +317,7 @@ describe('form: schema', () => {
             login_type: {
               type: 'string',
               title: '登录方式',
-              enum: [
-                { label: '手机', value: 'mobile' },
-                { label: '账密', value: 'account' },
-              ],
+              enum: [{ label: '手机', value: 'mobile' }, { label: '账密', value: 'account' }],
               default: 'mobile',
               ui: {
                 widget: 'radio',
@@ -357,9 +349,7 @@ describe('form: schema', () => {
 
   describe('[order]', () => {
     function genKeys() {
-      return JSON.stringify(
-        Object.keys((context.comp.rootProperty as ObjectProperty).properties),
-      );
+      return JSON.stringify(Object.keys((context.comp.rootProperty as ObjectProperty).properties));
     }
 
     function checkOrderKeys(arr: string[]) {
@@ -395,12 +385,13 @@ describe('form: schema', () => {
     });
 
     describe('should be throw error', () => {
+      beforeEach(() => spyOn(console, 'error'));
       it('when has extraneous key', () => {
         expect(() => {
           page.newSchema({
             properties: {
               a: { type: 'string' },
-              b: { type: 'string' }
+              b: { type: 'string' },
             },
             ui: {
               order: ['c', 'a'],
@@ -413,7 +404,7 @@ describe('form: schema', () => {
           page.newSchema({
             properties: {
               a: { type: 'string' },
-              b: { type: 'string' }
+              b: { type: 'string' },
             },
             ui: {
               order: ['a'],
@@ -426,7 +417,7 @@ describe('form: schema', () => {
           page.newSchema({
             properties: {
               a: { type: 'string' },
-              b: { type: 'string' }
+              b: { type: 'string' },
             },
             ui: {
               order: ['a', '*', '*', '*', '*'],
@@ -434,6 +425,31 @@ describe('form: schema', () => {
           });
         }).toThrow();
       });
+    });
+  });
+
+  describe('[$ref]', () => {
+    it('should be required valid', () => {
+      page
+        .newSchema({
+          definitions: {
+            nameRef: {
+              type: 'string',
+              title: 'nameRef',
+            },
+          },
+          properties: {
+            name: {
+              type: 'string',
+              title: 'Name',
+            },
+            nameTwo: {
+              $ref: '#/definitions/nameRef',
+            },
+          },
+          required: ['name', 'nameTwo'],
+        })
+        .checkUI('/nameTwo', '_required', true);
     });
   });
 });

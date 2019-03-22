@@ -5,18 +5,8 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+import { basename, dirname, normalize, relative, strings } from '@angular-devkit/core';
 import {
-  basename,
-  dirname,
-  normalize,
-  relative,
-  strings,
-} from '@angular-devkit/core';
-import {
-  Rule,
-  SchematicContext,
-  SchematicsException,
-  Tree,
   apply,
   branchAndMerge,
   chain,
@@ -26,14 +16,18 @@ import {
   noop,
   template,
   url,
+  Rule,
+  SchematicsException,
+  SchematicContext,
+  Tree,
 } from '@angular-devkit/schematics';
+import { addImportToModule } from '@schematics/angular/utility/ast-utils';
+import { InsertChange } from '@schematics/angular/utility/change';
+import { getWorkspace } from '@schematics/angular/utility/config';
+import { findModuleFromOptions } from '@schematics/angular/utility/find-module';
+import { parseName } from '@schematics/angular/utility/parse-name';
 import * as ts from 'typescript';
 import { Schema as ModuleSchema } from './schema';
-import { addImportToModule } from '../utils/devkit-utils/ast-utils';
-import { InsertChange } from '../utils/devkit-utils/change';
-import { getWorkspace } from '../utils/devkit-utils/config';
-import { findModuleFromOptions } from '../utils/devkit-utils/find-module';
-import { parseName } from '../utils/devkit-utils/parse-name';
 
 function addDeclarationToNgModule(options: ModuleSchema): Rule {
   return (host: Tree) => {
@@ -48,27 +42,19 @@ function addDeclarationToNgModule(options: ModuleSchema): Rule {
       throw new SchematicsException(`File ${modulePath} does not exist.`);
     }
     const sourceText = text.toString('utf-8');
-    const source = ts.createSourceFile(
-      modulePath,
-      sourceText,
-      ts.ScriptTarget.Latest,
-      true,
-    );
+    const source = ts.createSourceFile(modulePath, sourceText, ts.ScriptTarget.Latest, true);
 
     const importModulePath = normalize(
-      `/${options.path}/` +
-        (options.flat ? '' : strings.dasherize(options.name) + '/') +
-        strings.dasherize(options.name) +
-        '.module',
+      `/${options.path}/${
+        options.flat ? '' : strings.dasherize(options.name) + '/'
+      }${strings.dasherize(options.name)}.module`,
     );
-    const relativeDir = relative(
-      dirname(modulePath),
-      dirname(importModulePath),
-    );
-    const relativePath =
-      (relativeDir.startsWith('.') ? relativeDir : './' + relativeDir) +
-      '/' +
-      basename(importModulePath);
+    const relativeDir = relative(dirname(modulePath), dirname(importModulePath));
+
+    // tslint:disable-next-line:prefer-template
+    const relativePath = `${
+      relativeDir.startsWith('.') ? relativeDir : './' + relativeDir
+    }/${basename(importModulePath)}`;
     const changes = addImportToModule(
       source,
       modulePath,
@@ -97,9 +83,8 @@ export default function(schema: ModuleSchema): Rule {
     const project = workspace.projects[schema.project];
 
     if (schema.path === undefined) {
-      const projectDirName =
-        project.projectType === 'application' ? 'app' : 'lib';
-        schema.path = `/${(project as any).sourceRoot}/${projectDirName}/routes`;
+      const projectDirName = project.projectType === 'application' ? 'app' : 'lib';
+      schema.path = `/${(project as any).sourceRoot}/${projectDirName}/routes`;
     }
     if (schema.module) {
       schema.module = findModuleFromOptions(host, schema);
@@ -113,10 +98,7 @@ export default function(schema: ModuleSchema): Rule {
     schema.flat = false;
 
     const templateSource = apply(url('./files'), [
-      schema.spec ? noop() : filter(path => !path.endsWith('.spec.ts')),
-      schema.routing
-        ? noop()
-        : filter(path => !path.endsWith('-routing.module.ts')),
+      schema.routing ? noop() : filter(path => !path.endsWith('-routing.module.ts')),
       template({
         ...strings,
         'if-flat': (s: string) => (schema.flat ? '' : s),
@@ -126,9 +108,7 @@ export default function(schema: ModuleSchema): Rule {
     ]);
 
     return chain([
-      branchAndMerge(
-        chain([addDeclarationToNgModule(schema), mergeWith(templateSource)]),
-      ),
+      branchAndMerge(chain([addDeclarationToNgModule(schema), mergeWith(templateSource)])),
     ])(host, context);
   };
 }

@@ -1,157 +1,107 @@
+import { DOCUMENT } from '@angular/common';
 import {
-  Component,
-  Input,
-  Output,
-  OnChanges,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  EventEmitter,
-  OnInit,
-  SimpleChanges,
-  SimpleChange,
-  OnDestroy,
+  Component,
   ElementRef,
-  Renderer2,
+  EventEmitter,
   Inject,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
   Optional,
+  Output,
+  Renderer2,
+  SimpleChange,
+  SimpleChanges,
 } from '@angular/core';
-import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
-import { DOCUMENT } from '@angular/common';
-import { Subscription, combineLatest } from 'rxjs';
-import { filter, debounceTime } from 'rxjs/operators';
-import { toNumber, toBoolean } from '@delon/util';
-import { ALAIN_I18N_TOKEN, AlainI18NService } from '@delon/theme';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { AlainI18NService, ALAIN_I18N_TOKEN } from '@delon/theme';
+import { InputBoolean, InputNumber } from '@delon/util';
+import { Subject } from 'rxjs';
+import { debounceTime, filter, takeUntil } from 'rxjs/operators';
 
-import { ReuseTabService } from './reuse-tab.service';
-import {
-  ReuseTabCached,
-  ReuseTabNotify,
-  ReuseTabMatchMode,
-  ReuseItem,
-  ReuseContextI18n,
-  ReuseContextCloseEvent,
-  ReuseTitle,
-} from './interface';
 import { ReuseTabContextService } from './reuse-tab-context.service';
+import {
+  ReuseContextCloseEvent,
+  ReuseContextI18n,
+  ReuseCustomContextMenu,
+  ReuseItem,
+  ReuseTabCached,
+  ReuseTabMatchMode,
+  ReuseTabNotify,
+  ReuseTitle,
+} from './reuse-tab.interfaces';
+import { ReuseTabService } from './reuse-tab.service';
 
 @Component({
   selector: 'reuse-tab',
   templateUrl: './reuse-tab.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  preserveWhitespaces: false,
   providers: [ReuseTabContextService],
   host: {
-    '[class.ad-rt]': 'true',
-    '[class.fixed]': 'fixed',
+    '[class.reuse-tab]': 'true',
   },
 })
 export class ReuseTabComponent implements OnInit, OnChanges, OnDestroy {
-  private sub$: Subscription;
-  private i18n$: Subscription;
+  private el: HTMLElement;
+  private unsubscribe$ = new Subject<void>();
+  private _keepingScrollContainer: Element;
   list: ReuseItem[] = [];
   item: ReuseItem;
   pos = 0;
 
-  // region: properties
-  /** 设置匹配模式 */
+  // #region fields
+
   @Input() mode: ReuseTabMatchMode = ReuseTabMatchMode.Menu;
-  /** 选项文本国际化 */
   @Input() i18n: ReuseContextI18n;
-  /** 是否Debug模式 */
-  @Input()
-  get debug() {
-    return this._debug;
-  }
-  set debug(value: any) {
-    this._debug = toBoolean(value);
-  }
-  private _debug = false;
-  /** 允许最多复用多少个页面 */
-  @Input()
-  get max() {
-    return this._max;
-  }
-  set max(value: any) {
-    this._max = toNumber(value);
-  }
-  private _max: number;
-  /** 排除规则，限 `mode=URL` */
+  @Input() @InputBoolean() debug = false;
+  @Input() @InputNumber() max: number;
   @Input() excludes: RegExp[];
-  /** 允许关闭 */
+  @Input() @InputBoolean() allowClose = true;
+  @Input() @InputBoolean() showCurrent = true;
+  @Input() @InputBoolean() keepingScroll = false;
   @Input()
-  get allowClose() {
-    return this._allowClose;
+  set keepingScrollContainer(value: string | Element) {
+    this._keepingScrollContainer =
+      typeof value === 'string' ? this.doc.querySelector(value) : value;
   }
-  set allowClose(value: any) {
-    this._allowClose = toBoolean(value);
-  }
-  private _allowClose = true;
-  /** 是否固定 */
-  @Input()
-  get fixed() {
-    return this._fixed;
-  }
-  set fixed(value: any) {
-    this._fixed = toBoolean(value);
-  }
-  private _fixed = true;
-  /** 总是显示当前页 */
-  @Input()
-  get showCurrent() {
-    return this._showCurrent;
-  }
-  set showCurrent(value: any) {
-    this._showCurrent = toBoolean(value);
-  }
-  private _showCurrent = true;
-  /** 切换时回调 */
-  @Output() change: EventEmitter<ReuseItem> = new EventEmitter<ReuseItem>();
-  /** 关闭回调 */
-  @Output() close: EventEmitter<ReuseItem> = new EventEmitter<ReuseItem>();
-  // endregion
+  @Input() customContextMenu: ReuseCustomContextMenu[] = [];
+  @Output() readonly change = new EventEmitter<ReuseItem>();
+  @Output() readonly close = new EventEmitter<ReuseItem>();
+
+  // #endregion
 
   constructor(
-    public srv: ReuseTabService,
-    private cd: ChangeDetectorRef,
+    el: ElementRef,
+    private srv: ReuseTabService,
+    private cdr: ChangeDetectorRef,
     private router: Router,
     private route: ActivatedRoute,
-    private el: ElementRef,
     private render: Renderer2,
+    @Optional() @Inject(ALAIN_I18N_TOKEN) private i18nSrv: AlainI18NService,
     @Inject(DOCUMENT) private doc: any,
-    @Optional()
-    @Inject(ALAIN_I18N_TOKEN)
-    private i18nSrv: AlainI18NService,
   ) {
-    const route$ = this.router.events.pipe(
-      filter(evt => evt instanceof NavigationEnd),
-    );
-    this.sub$ = combineLatest(this.srv.change, route$).subscribe(([res, e]) =>
-      this.genList(res as any),
-    );
-    if (this.i18nSrv)
-      this.i18n$ = this.i18nSrv.change.pipe(debounceTime(100)).subscribe(() => this.genList());
+    this.el = el.nativeElement;
   }
 
   private genTit(title: ReuseTitle): string {
-    return title.i18n && this.i18nSrv
-      ? this.i18nSrv.fanyi(title.i18n)
-      : title.text;
+    return title.i18n && this.i18nSrv ? this.i18nSrv.fanyi(title.i18n) : title.text;
   }
 
   private genList(notify?: ReuseTabNotify) {
     const isClosed = notify && notify.active === 'close';
-    const beforeClosePos = isClosed
-      ? this.list.findIndex(w => w.url === notify.url)
-      : -1;
+    const beforeClosePos = isClosed ? this.list.findIndex(w => w.url === notify.url) : -1;
     const ls = this.srv.items.map((item: ReuseTabCached, index: number) => {
-      return <ReuseItem>{
+      return {
         url: item.url,
         title: this.genTit(item.title),
         closable: this.allowClose && item.closable && this.srv.count > 0,
         index,
         active: false,
         last: false,
-      };
+      } as ReuseItem;
     });
     if (this.showCurrent) {
       const snapshot = this.route.snapshot;
@@ -160,24 +110,18 @@ export class ReuseTabComponent implements OnInit, OnChanges, OnDestroy {
       // jump directly when the current exists in the list
       // or create a new current item and jump
       if (idx !== -1 || (isClosed && notify.url === url)) {
-        this.pos = isClosed
-          ? idx >= beforeClosePos
-            ? this.pos - 1
-            : this.pos
-          : idx;
+        this.pos = isClosed ? (idx >= beforeClosePos ? this.pos - 1 : this.pos) : idx;
       } else {
         const snapshotTrue = this.srv.getTruthRoute(snapshot);
-        ls.push(<ReuseItem>{
+        ls.push({
           url,
           title: this.genTit(this.srv.getTitle(url, snapshotTrue)),
           closable:
-            this.allowClose &&
-            this.srv.count > 0 &&
-            this.srv.getClosable(url, snapshotTrue),
+            this.allowClose && this.srv.count > 0 && this.srv.getClosable(url, snapshotTrue),
           index: ls.length,
           active: false,
           last: false,
-        });
+        } as ReuseItem);
         this.pos = ls.length - 1;
       }
       // fix unabled close last item
@@ -192,19 +136,15 @@ export class ReuseTabComponent implements OnInit, OnChanges, OnDestroy {
 
     this.refStatus(false);
     this.visibility();
-    this.cd.detectChanges();
+    this.cdr.detectChanges();
   }
 
   private visibility() {
     if (this.showCurrent) return;
-    this.render.setStyle(
-      this.el.nativeElement,
-      'display',
-      this.list.length === 0 ? 'none' : 'block',
-    );
+    this.render.setStyle(this.el, 'display', this.list.length === 0 ? 'none' : 'block');
   }
 
-  // region: UI
+  // #region UI
 
   cmChange(res: ReuseContextCloseEvent) {
     switch (res.type) {
@@ -228,7 +168,7 @@ export class ReuseTabComponent implements OnInit, OnChanges, OnDestroy {
       this.list[this.list.length - 1].last = true;
       this.list.forEach((i, idx) => (i.active = this.pos === idx));
     }
-    if (dc) this.cd.detectChanges();
+    if (dc) this.cdr.detectChanges();
   }
 
   to(e: Event, index: number) {
@@ -255,42 +195,51 @@ export class ReuseTabComponent implements OnInit, OnChanges, OnDestroy {
     const item = this.list[idx];
     this.srv.close(item.url, includeNonCloseable);
     this.close.emit(item);
-    this.cd.detectChanges();
+    this.cdr.detectChanges();
     return false;
   }
 
-  // endregion
+  // #endregion
 
   ngOnInit(): void {
-    this.setClass();
+    this.router.events
+      .pipe(
+        takeUntil(this.unsubscribe$),
+        filter(evt => evt instanceof NavigationEnd),
+      )
+      .subscribe(() => this.genList());
+
+    this.srv.change.pipe(takeUntil(this.unsubscribe$)).subscribe(res => this.genList(res));
+
+    this.i18nSrv.change
+      .pipe(
+        filter(() => this.srv.inited),
+        takeUntil(this.unsubscribe$),
+        debounceTime(100),
+      )
+      .subscribe(() => this.genList());
 
     this.genList();
+    this.srv.init();
   }
 
-  private setClass() {
-    const body = this.doc.querySelector('body');
-    const bodyCls = `has-ad-rt`;
-    if (this.fixed) {
-      this.render.addClass(body, bodyCls);
-    } else {
-      this.render.removeClass(body, bodyCls);
-    }
-  }
-
-  ngOnChanges(
-    changes: { [P in keyof this]?: SimpleChange } & SimpleChanges,
-  ): void {
+  ngOnChanges(changes: { [P in keyof this]?: SimpleChange } & SimpleChanges): void {
     if (changes.max) this.srv.max = this.max;
     if (changes.excludes) this.srv.excludes = this.excludes;
     if (changes.mode) this.srv.mode = this.mode;
+    if (changes.keepingScroll) {
+      this.srv.keepingScroll = this.keepingScroll;
+      this.srv.keepingScrollContainer = this._keepingScrollContainer;
+    }
+
     this.srv.debug = this.debug;
 
-    this.setClass();
-    this.cd.detectChanges();
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {
-    this.sub$.unsubscribe();
-    if (this.i18n$) this.i18n$.unsubscribe();
+    const { unsubscribe$ } = this;
+    unsubscribe$.next();
+    unsubscribe$.complete();
   }
 }

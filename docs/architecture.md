@@ -1,5 +1,5 @@
 ---
-order: 1
+order: 20
 title:
   en-US: Architecture
   zh-CN: 体系结构
@@ -10,7 +10,7 @@ ng-alain 脚手架是基于 Angular 和 ng-zorro-antd（Ant Design 的 Angular �
 
 ## 结构图
 
-![](https://github.com/cipchk/delon/raw/master/_screenshot/architecture.png | width=700)
+![](https://github.com/ng-alain/delon/raw/master/_screenshot/architecture.png | width=700)
 
 **@delon/theme**
 
@@ -21,6 +21,10 @@ ng-alain 脚手架是基于 Angular 和 ng-zorro-antd（Ant Design 的 Angular �
 **@delon/abc**
 
 脚手架内提供了一套默认[业务组件](/components/)，这些组件抽象了控制台业务中的一些常见区块。我们将持续维护和迭代这些组件，为中后台业务提供比 Ant Design 基础组件更高级别的抽象。
+
+**@delon/chart**
+
+[@delon/chart](/chart) 图表是基于 G2 (3.0) 的基础上二次封装，提供了业务中常用的图表套件，可以单独使用，也可以组合起来实现复杂的展示效果。
 
 **@delon/form**
 
@@ -46,26 +50,16 @@ ng-alain 脚手架是基于 Angular 和 ng-zorro-antd（Ant Design 的 Angular �
 
 [日常工具集](/util)。
 
+**@delon/testing**
+
+常用测试套件。
+
 **CLI Schematics**
 
 [命令行工具](/cli)。
 
 ## 文档和反馈
 
-你可以在 [ng-alain.com](http://ng-alain.com) 找到所有的文档。
+你可以在 [ng-alain.com](https://ng-alain.com) 找到所有的文档。
 
-随着脚手架的更新而不断迭代（[更新日志](https://github.com/cipchk/ng-alain/releases)），有任何问题和需求可以反馈到 [这里](//github.com/cipchk/ng-alain/issues)。
-
-### 版本信息
-
-| package name | version | next version |
-| ------------ |:-----:|:----------:|
-| ng-alain [Document](/cli) | [![NPM version](https://img.shields.io/npm/v/ng-alain.svg)](https://www.npmjs.com/package/ng-alain) | [![NPM version](https://img.shields.io/npm/v/ng-alain/next.svg)](https://www.npmjs.com/package/ng-alain) |
-| @delon/theme [Document](/docs/theme) | [![NPM version](https://img.shields.io/npm/v/@delon/theme.svg)](https://www.npmjs.com/package/@delon/theme) | [![NPM version](https://img.shields.io/npm/v/@delon/theme/next.svg)](https://www.npmjs.com/package/@delon/theme) |
-| @delon/abc [Document](/components) | [![NPM version](https://img.shields.io/npm/v/@delon/abc.svg)](https://www.npmjs.com/package/@delon/abc) | [![NPM version](https://img.shields.io/npm/v/@delon/abc/next.svg)](https://www.npmjs.com/package/@delon/abc) |
-| @delon/form [Document](/form) | [![NPM version](https://img.shields.io/npm/v/@delon/form.svg)](https://www.npmjs.com/package/@delon/form) | [![NPM version](https://img.shields.io/npm/v/@delon/form/next.svg)](https://www.npmjs.com/package/@delon/form) |
-| @delon/acl [Document](/acl) | [![NPM version](https://img.shields.io/npm/v/@delon/acl.svg)](https://www.npmjs.com/package/@delon/acl) | [![NPM version](https://img.shields.io/npm/v/@delon/acl/next.svg)](https://www.npmjs.com/package/@delon/acl) |
-| @delon/auth [Document](/auch) | [![NPM version](https://img.shields.io/npm/v/@delon/auth.svg)](https://www.npmjs.com/package/@delon/auth) | [![NPM version](https://img.shields.io/npm/v/@delon/auth/next.svg)](https://www.npmjs.com/package/@delon/auth) |
-| @delon/mock [Document](/mock) | [![NPM version](https://img.shields.io/npm/v/@delon/mock.svg)](https://www.npmjs.com/package/@delon/mock) | [![NPM version](https://img.shields.io/npm/v/@delon/mock/next.svg)](https://www.npmjs.com/package/@delon/mock) |
-| @delon/cache [Document](/cache) | [![NPM version](https://img.shields.io/npm/v/@delon/cache.svg)](https://www.npmjs.com/package/@delon/cache) | [![NPM version](https://img.shields.io/npm/v/@delon/cache/next.svg)](https://www.npmjs.com/package/@delon/cache) |
-| @delon/util [Document](/util) | [![NPM version](https://img.shields.io/npm/v/@delon/util.svg)](https://www.npmjs.com/package/@delon/util) | [![NPM version](https://img.shields.io/npm/v/@delon/util/next.svg)](https://www.npmjs.com/package/@delon/util) |
+随着脚手架的更新而不断迭代（[更新日志](https://github.com/ng-alain/ng-alain/releases)），有任何问题和需求可以反馈到 [这里](https://github.com/ng-alain/ng-alain/issues)。

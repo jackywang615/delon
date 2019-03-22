@@ -1,16 +1,18 @@
-import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { Component, DebugElement, Injector } from '@angular/core';
-import { By } from '@angular/platform-browser';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import {
   HttpClientTestingModule,
   HttpTestingController,
   TestRequest,
 } from '@angular/common/http/testing';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import * as fs from 'file-saver';
+import { Component, DebugElement, ViewChild } from '@angular/core';
+import { ComponentFixture, TestBed, TestBedStatic } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { configureTestSuite } from '@delon/testing';
 import { _HttpClient } from '@delon/theme';
+import * as fs from 'file-saver';
 
-import { AdDownFileModule } from './down-file.module';
+import { DownFileDirective } from './down-file.directive';
+import { DownFileModule } from './down-file.module';
 
 function genFile(ext: string, isRealFile = true): Blob {
   const blob = new Blob([
@@ -25,14 +27,14 @@ describe('abc: down-file', () => {
   let fixture: ComponentFixture<TestComponent>;
   let dl: DebugElement;
   let context: TestComponent;
-  let injector: Injector;
+  let injector: TestBedStatic;
   let http: HttpClient;
   let _http: _HttpClient;
   let httpBed: HttpTestingController;
 
-  beforeEach(() => {
+  configureTestSuite(() => {
     injector = TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, AdDownFileModule.forRoot()],
+      imports: [HttpClientTestingModule, DownFileModule],
       declarations: [TestComponent],
     });
   });
@@ -52,32 +54,24 @@ describe('abc: down-file', () => {
     beforeEach(() => createComp());
     ['xlsx', 'docx', 'pptx', 'pdf'].forEach(ext => {
       it(`should be down ${ext}`, () => {
-        spyOn(fs, 'saveAs');
+        spyOn(fs.default, 'saveAs');
         if (ext === 'docx') context.data = null;
         fixture.detectChanges();
-        (dl.query(By.css('#down-' + ext))
-          .nativeElement as HTMLButtonElement).click();
-        const ret = httpBed.expectOne(req =>
-          req.url.startsWith('/'),
-        ) as TestRequest;
+        (dl.query(By.css('#down-' + ext)).nativeElement as HTMLButtonElement).click();
+        const ret = httpBed.expectOne(req => req.url.startsWith('/')) as TestRequest;
         ret.flush(genFile(ext));
-        expect(fs.saveAs).toHaveBeenCalled();
+        expect(fs.default.saveAs).toHaveBeenCalled();
       });
     });
 
     it('should be using header filename when repseon has [filename]', () => {
       let fn: string;
       const filename = 'newfile.docx';
-      spyOn(fs, 'saveAs').and.callFake(
-        (body: any, fileName: string) => (fn = fileName),
-      );
+      spyOn(fs.default, 'saveAs').and.callFake((body: {}, fileName: string) => (fn = fileName));
       context.fileName = null;
       fixture.detectChanges();
-      (dl.query(By.css('#down-docx'))
-        .nativeElement as HTMLButtonElement).click();
-      const ret = httpBed.expectOne(req =>
-        req.url.startsWith('/'),
-      ) as TestRequest;
+      (dl.query(By.css('#down-docx')).nativeElement as HTMLButtonElement).click();
+      const ret = httpBed.expectOne(req => req.url.startsWith('/')) as TestRequest;
       ret.flush(genFile('docx'), {
         headers: new HttpHeaders({ filename }),
       });
@@ -85,19 +79,13 @@ describe('abc: down-file', () => {
     });
 
     it('should be using header filename when repseon has [x-filename]', () => {
-      console.log(_http);
       let fn: string;
       const filename = 'x-newfile.docx';
-      spyOn(fs, 'saveAs').and.callFake(
-        (body: any, fileName: string) => (fn = fileName),
-      );
+      spyOn(fs.default, 'saveAs').and.callFake((body: {}, fileName: string) => (fn = fileName));
       context.fileName = null;
       fixture.detectChanges();
-      (dl.query(By.css('#down-docx'))
-        .nativeElement as HTMLButtonElement).click();
-      const ret = httpBed.expectOne(req =>
-        req.url.startsWith('/'),
-      ) as TestRequest;
+      (dl.query(By.css('#down-docx')).nativeElement as HTMLButtonElement).click();
+      const ret = httpBed.expectOne(req => req.url.startsWith('/')) as TestRequest;
       ret.flush(genFile('docx'), {
         headers: new HttpHeaders({ 'x-filename': filename }),
       });
@@ -107,11 +95,8 @@ describe('abc: down-file', () => {
     it('should be throw error when a bad request', () => {
       spyOn(context, 'error');
       expect(context.error).not.toHaveBeenCalled();
-      (dl.query(By.css('#down-docx'))
-        .nativeElement as HTMLButtonElement).click();
-      const ret = httpBed.expectOne(req =>
-        req.url.startsWith('/'),
-      ) as TestRequest;
+      (dl.query(By.css('#down-docx')).nativeElement as HTMLButtonElement).click();
+      const ret = httpBed.expectOne(req => req.url.startsWith('/')) as TestRequest;
       ret.error(null, { status: 404 });
       expect(context.error).toHaveBeenCalled();
     });
@@ -119,60 +104,34 @@ describe('abc: down-file', () => {
     it('should be throw error when a empty file', () => {
       spyOn(context, 'error');
       expect(context.error).not.toHaveBeenCalled();
-      (dl.query(By.css('#down-docx'))
-        .nativeElement as HTMLButtonElement).click();
-      const ret = httpBed.expectOne(req =>
-        req.url.startsWith('/'),
-      ) as TestRequest;
+      (dl.query(By.css('#down-docx')).nativeElement as HTMLButtonElement).click();
+      const ret = httpBed.expectOne(req => req.url.startsWith('/')) as TestRequest;
       ret.flush(genFile('docx', false));
       expect(context.error).toHaveBeenCalled();
     });
 
     it('should be throw error when http status is not 200', () => {
-      spyOn(fs, 'saveAs');
+      spyOn(fs.default, 'saveAs');
       spyOn(context, 'error');
       expect(context.error).not.toHaveBeenCalled();
-      expect(fs.saveAs).not.toHaveBeenCalled();
-      (dl.query(By.css('#down-docx'))
-        .nativeElement as HTMLButtonElement).click();
-      const ret = httpBed.expectOne(req =>
-        req.url.startsWith('/'),
-      ) as TestRequest;
+      expect(fs.default.saveAs).not.toHaveBeenCalled();
+      (dl.query(By.css('#down-docx')).nativeElement as HTMLButtonElement).click();
+      const ret = httpBed.expectOne(req => req.url.startsWith('/')) as TestRequest;
       ret.flush(null, { status: 201, statusText: '201' });
-      expect(fs.saveAs).not.toHaveBeenCalled();
+      expect(fs.default.saveAs).not.toHaveBeenCalled();
       expect(context.error).toHaveBeenCalled();
     });
-  });
-
-  it('should be support nativity HttpClient', () => {
-    TestBed.overrideProvider(_HttpClient, { useFactory: () => null, deps: [] });
-    createComp();
-    spyOn(fs, 'saveAs');
-    const ext = 'docx';
-    if (ext === 'docx') context.data = null;
-    fixture.detectChanges();
-    (dl.query(By.css('#down-' + ext))
-      .nativeElement as HTMLButtonElement).click();
-    const ret = httpBed.expectOne(req =>
-      req.url.startsWith('/'),
-    ) as TestRequest;
-    ret.flush(genFile(ext));
-    expect(fs.saveAs).toHaveBeenCalled();
   });
 
   it('should be using content-disposition filename', () => {
     createComp();
     let fn: string;
     const filename = 'newfile.docx';
-    spyOn(fs, 'saveAs').and.callFake(
-      (body: any, fileName: string) => (fn = fileName),
-    );
+    spyOn(fs.default, 'saveAs').and.callFake((body: {}, fileName: string) => (fn = fileName));
     context.fileName = null;
     fixture.detectChanges();
     (dl.query(By.css('#down-docx')).nativeElement as HTMLButtonElement).click();
-    const ret = httpBed.expectOne(req =>
-      req.url.startsWith('/'),
-    ) as TestRequest;
+    const ret = httpBed.expectOne(req => req.url.startsWith('/')) as TestRequest;
     ret.flush(genFile('docx'), {
       headers: new HttpHeaders({
         'Content-Disposition': `attachment; filename=${filename}; filename*=UTF-8''${filename}`,
@@ -184,16 +143,24 @@ describe('abc: down-file', () => {
 
 @Component({
   template: `
-    <button *ngFor="let i of fileTypes" id="down-{{i}}" class="mr-sm"
-        down-file
-        [http-data]="data"
-        http-method="get"
-        http-url="/demo.{{i}}"
-        [file-name]="fileName"
-        (success)="success()"
-        (error)="error()">{{i}}</button>`,
+    <button
+      *ngFor="let i of fileTypes"
+      id="down-{{ i }}"
+      class="mr-sm"
+      down-file
+      [http-data]="data"
+      http-method="get"
+      http-url="/demo.{{ i }}"
+      [file-name]="fileName"
+      (success)="success()"
+      (error)="error()"
+    >
+      {{ i }}
+    </button>
+  `,
 })
 class TestComponent {
+  @ViewChild(DownFileDirective) comp: DownFileDirective;
   fileTypes = ['xlsx', 'docx', 'pptx', 'pdf'];
 
   data = {

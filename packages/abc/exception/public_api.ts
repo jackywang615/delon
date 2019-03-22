@@ -1,2 +1,2 @@
-export { ExceptionComponent } from './exception.component';
-export { AdExceptionModule } from './exception.module';
+export * from './exception.component';
+export { ExceptionModule } from './exception.module';

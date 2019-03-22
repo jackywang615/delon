@@ -1,64 +1,52 @@
 import {
-  Component,
-  Input,
   ChangeDetectionStrategy,
-  OnChanges,
   ChangeDetectorRef,
-  SimpleChanges,
-  HostBinding,
-  Output,
+  Component,
   EventEmitter,
+  Input,
+  OnChanges,
+  Output,
 } from '@angular/core';
+import { InputNumber } from '@delon/util';
+
+import { QRConfig } from './qr.config';
 import { QRService } from './qr.service';
-import { AdQRConfig } from './qr.config';
 
 @Component({
   selector: 'qr',
   template: `
-  <img src="{{dataURL}}">
+    <img class="qr__img" src="{{ dataURL }}" />
   `,
-  preserveWhitespaces: false,
-  host: { '[class.ad-qr]': 'true' },
+  host: {
+    '[class.qr]': 'true',
+    '[style.height.px]': 'size',
+    '[style.width.px]': 'size',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QRComponent implements OnChanges {
   dataURL: string;
-  // region: fields
 
-  /** 背景 */
+  // #region fields
+
   @Input() background: string;
-  /** 背景透明级别，范围：`0-1` 之间 */
   @Input() backgroundAlpha: number;
-  /** 前景 */
   @Input() foreground: string;
-  /** 前景透明级别，范围：`0-1` 之间 */
   @Input() foregroundAlpha: number;
-  /** 误差校正级别 */
   @Input() level: string;
-  /** 二维码输出图片MIME类型 */
   @Input() mime: string;
-  /** 内边距（单位：px） */
-  @Input() padding: number;
-  /** 大小（单位：px） */
-  @HostBinding('style.height.px')
-  @HostBinding('style.width.px')
-  @Input() size: number;
-  /** 值 */
+  @Input() @InputNumber() padding: number;
+  @Input() @InputNumber() size: number;
   @Input() value: string;
-  /** 变更时回调 */
-  @Output() change = new EventEmitter<string>();
+  @Output() readonly change = new EventEmitter<string>();
 
-  // endregion
+  // #endregion
 
-  constructor(
-    cog: AdQRConfig,
-    private srv: QRService,
-    private cd: ChangeDetectorRef,
-  ) {
-    Object.assign(this, cog);
+  constructor(cog: QRConfig, private srv: QRService, private cdr: ChangeDetectorRef) {
+    Object.assign(this, { ...new QRConfig(), ...cog });
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  ngOnChanges(): void {
     this.dataURL = this.srv.refresh({
       background: this.background,
       backgroundAlpha: this.backgroundAlpha,
@@ -68,9 +56,9 @@ export class QRComponent implements OnChanges {
       mime: this.mime,
       padding: this.padding,
       size: this.size,
-      value: this.value
+      value: this.value,
     });
-    this.cd.detectChanges();
+    this.cdr.detectChanges();
     this.change.emit(this.dataURL);
   }
 }

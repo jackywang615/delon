@@ -1,8 +1,5 @@
 {
-  "extends": {
-    "stylelint-config-standard",
-    "./node_modules/prettier-stylelint/config.js"
-  },
+  "extends": ["stylelint-config-standard", "stylelint-config-prettier"],
   "rules": {
     "comment-empty-line-before": null,
     "declaration-empty-line-before": null,
@@ -20,15 +17,8 @@
     "selector-pseudo-element-colon-notation": null,
     "unit-no-unknown": null,
     "value-list-max-empty-lines": null,
-    "selector-type-no-unknown": null,
-    "selector-pseudo-element-no-unknown": [
-      true,
-      {
-        "ignorePseudoElements": [
-          "ng-deep"
-        ]
-      }
-    ],
-    "no-descending-specificity": null
+    "font-family-no-missing-generic-family-keyword": null,
+    "no-descending-specificity": null,
+    "selector-type-no-unknown": null
   }
 }

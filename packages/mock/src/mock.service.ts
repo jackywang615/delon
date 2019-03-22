@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { DelonMockConfig } from '../mock.config';
 import { MockCachedRule, MockRule } from './interface';
+import { DelonMockConfig } from './mock.config';
 
 @Injectable()
 export class MockService implements OnDestroy {
@@ -11,7 +11,7 @@ export class MockService implements OnDestroy {
     delete this.config.data;
   }
 
-  // region: parse rule
+  // #region parse rule
 
   private applyMock() {
     this.cached = [];
@@ -31,11 +31,7 @@ export class MockService implements OnDestroy {
       Object.keys(rules).forEach((ruleKey: string) => {
         const value = rules[ruleKey];
         if (
-          !(
-            typeof value === 'function' ||
-            typeof value === 'object' ||
-            typeof value === 'string'
-          )
+          !(typeof value === 'function' || typeof value === 'object' || typeof value === 'string')
         ) {
           throw Error(
             `mock value of [${key}-${ruleKey}] should be function or object or string, but got ${typeof value}`,
@@ -43,15 +39,11 @@ export class MockService implements OnDestroy {
         }
         const rule = this.genRule(ruleKey, value);
         if (
-          ['GET', 'POST', 'PUT', 'HEAD', 'DELETE', 'PATCH', 'OPTIONS'].indexOf(
-            rule.method,
-          ) === -1
+          ['GET', 'POST', 'PUT', 'HEAD', 'DELETE', 'PATCH', 'OPTIONS'].indexOf(rule.method) === -1
         ) {
           throw Error(`method of ${key}-${ruleKey} is not valid`);
         }
-        const item = this.cached.find(
-          w => w.url === rule.url && w.method === rule.method,
-        );
+        const item = this.cached.find(w => w.url === rule.url && w.method === rule.method);
         if (item) {
           item.callback = rule.callback;
         } else {
@@ -61,9 +53,7 @@ export class MockService implements OnDestroy {
     });
     // regular ordering
     this.cached.sort(
-      (a, b) =>
-        (b.martcher || '').toString().length -
-        (a.martcher || '').toString().length,
+      (a, b) => (b.martcher || '').toString().length - (a.martcher || '').toString().length,
     );
   }
 
@@ -88,7 +78,7 @@ export class MockService implements OnDestroy {
         .split('/')
         .map(segment => (segment.startsWith(':') ? `([^/]+)` : segment))
         .join('/');
-      martcher = new RegExp(reStr, 'i');
+      martcher = new RegExp(`^${reStr}`, 'i');
     } else if (/(\([^)]+\))/i.test(url)) {
       martcher = new RegExp(url, 'i');
     }
@@ -118,17 +108,14 @@ export class MockService implements OnDestroy {
     throw error;
   }
 
-  // endregion
+  // #endregion
 
   getRule(method: string, url: string): MockRule {
     method = (method || 'GET').toUpperCase();
-    const params: any = {};
-    const list =
-      this.cached.filter(
-        w =>
-          w.method === method &&
-          (w.martcher ? w.martcher.test(url) : w.url === url),
-      );
+    const params = {};
+    const list = this.cached.filter(
+      w => w.method === method && (w.martcher ? w.martcher.test(url) : w.url === url),
+    );
     if (list.length === 0) return null;
     const ret = list.find(w => w.url === url) || list[0];
     if (ret.martcher) {

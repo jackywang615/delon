@@ -1,45 +1,41 @@
 import {
   Component,
-  OnInit,
-  OnChanges,
+  ComponentRef,
   Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
   ViewChild,
   ViewContainerRef,
-  ComponentRef,
-  OnDestroy,
-  SimpleChanges,
 } from '@angular/core';
+import { Subject } from 'rxjs';
 import { FormProperty } from './model/form.property';
+import { SFUISchemaItem } from './schema/ui';
+import { TerminatorService } from './terminator.service';
 import { Widget } from './widget';
 import { WidgetFactory } from './widget.factory';
-import { TerminatorService } from './terminator.service';
-import { SFUISchemaItem } from './schema/ui';
 
 let nextUniqueId = 0;
 
 @Component({
   selector: 'sf-item',
-  template: `<ng-template #target></ng-template>`,
+  template: `
+    <ng-template #target></ng-template>
+  `,
 })
 export class SFItemComponent implements OnInit, OnChanges, OnDestroy {
-  private ref: ComponentRef<any>;
-  widget: Widget<any> = null;
-
-  // region: fields
+  private ref: ComponentRef<Widget<FormProperty>>;
+  readonly unsubscribe$ = new Subject<void>();
+  widget: Widget<FormProperty> = null;
 
   @Input() formProperty: FormProperty;
 
   @ViewChild('target', { read: ViewContainerRef })
   container: ViewContainerRef;
 
-  // endregion
+  constructor(private widgetFactory: WidgetFactory, private terminator: TerminatorService) {}
 
-  constructor(
-    private widgetFactory: WidgetFactory,
-    private terminator: TerminatorService,
-  ) {}
-
-  onWidgetInstanciated(widget: Widget<any>) {
+  onWidgetInstanciated(widget: Widget<FormProperty>) {
     this.widget = widget;
     const id = `_sf-${nextUniqueId++}`;
 
@@ -53,21 +49,19 @@ export class SFItemComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.terminator.onDestroy.subscribe(() => {
-      this.ngOnDestroy();
-    });
+    this.terminator.onDestroy.subscribe(() => this.ngOnDestroy());
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    this.ref = this.widgetFactory.createWidget(
-      this.container,
-      this.formProperty.ui.widget || this.formProperty.schema.type,
-    );
+  ngOnChanges(): void {
+    this.ref = this.widgetFactory.createWidget(this.container, (this.formProperty.ui.widget ||
+      this.formProperty.schema.type) as string);
     this.onWidgetInstanciated(this.ref.instance);
   }
 
   ngOnDestroy(): void {
-    this.formProperty.ui.__destroy = true;
+    const { unsubscribe$ } = this;
+    unsubscribe$.next();
+    unsubscribe$.complete();
     this.ref.destroy();
   }
 }

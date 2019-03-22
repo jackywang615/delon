@@ -1,75 +1,92 @@
-import { RouterModule, RouteReuseStrategy } from '@angular/router';
+import { APP_INITIALIZER, Injector, NgModule } from '@angular/core';
+import { createCustomElement } from '@angular/elements';
 import { BrowserModule } from '@angular/platform-browser';
-import { NgModule, APP_INITIALIZER } from '@angular/core';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+
 import { HttpClientModule } from '@angular/common/http';
-import { NgZorroAntdModule } from 'ng-zorro-antd';
+import { TranslateModule } from '@ngx-translate/core';
 
-import { AlainThemeModule } from '@delon/theme';
-import { DelonACLModule } from '@delon/acl';
-import { DelonABCModule, ReuseTabService, ReuseTabStrategy } from '@delon/abc';
-import { DelonAuthModule } from '@delon/auth';
-import { DelonMockModule } from '@delon/mock';
-import { DelonFormModule } from '@delon/form';
-import { DelonUtilModule } from '@delon/util';
-import { AppComponent } from './app.component';
+// angular i18n
+import { registerLocaleData } from '@angular/common';
+import localeZh from '@angular/common/locales/zh';
+registerLocaleData(localeZh);
+
 import { RoutesModule } from './routes/routes.module';
-import { LayoutComponent } from './layout.component';
-import { PassportComponent } from './passport.component';
-import { DemoModalComponent } from './shared/components/modal/demo.component';
+import { SharedModule } from './shared/shared.module';
 
-// mock data
-import * as MOCKDATA from '../../_mock';
-import { environment } from '../environments/environment';
+import { ALAIN_I18N_TOKEN } from '@delon/theme';
+import { I18NService } from './core/i18n/service';
 import { StartupService } from './core/startup.service';
-const MOCKMODULE = [];
-if (!environment.production) {
-    MOCKMODULE.push(DelonMockModule.forRoot({
-        data: MOCKDATA
-    }));
-}
 
-export function StartupServiceFactory(startupService: StartupService): Function {
+import { AppComponent } from './app.component';
+import { HeaderComponent } from './layout/header/header.component';
+import { LayoutComponent } from './layout/layout.component';
+
+import { DelonModule } from './delon.module';
+
+import { SimplemdeModule } from 'ngx-simplemde';
+import { NgxTinymceModule } from 'ngx-tinymce';
+import { UEditorModule } from 'ngx-ueditor';
+import { JsonSchemaModule } from './shared/json-schema/json-schema.module';
+
+import { ExampleModule, EXAMPLE_COMPONENTS } from './routes/gen/examples';
+import { IconComponent } from './shared/components/icon/icon.component';
+
+export function StartupServiceFactory(startupService: StartupService) {
   return () => startupService.load();
 }
 
 @NgModule({
-  declarations: [
-    AppComponent, LayoutComponent, PassportComponent,
-    DemoModalComponent
-  ],
   imports: [
     BrowserModule,
-    FormsModule,
-    ReactiveFormsModule,
-    HttpClientModule,
     BrowserAnimationsModule,
-    NgZorroAntdModule.forRoot(),
-    AlainThemeModule.forRoot(),
-    DelonABCModule.forRoot(),
-    DelonACLModule.forRoot(),
-    DelonAuthModule.forRoot(),
-    DelonFormModule.forRoot(),
-    DelonUtilModule.forRoot(),
-    ...MOCKMODULE,
-    RoutesModule
+    HttpClientModule,
+    DelonModule.forRoot(),
+    SharedModule,
+    JsonSchemaModule,
+    RoutesModule,
+    ExampleModule,
+    // i18n
+    TranslateModule.forRoot(),
+    NgxTinymceModule.forRoot({
+      baseURL: 'https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.9.2/',
+    }),
+    UEditorModule.forRoot({
+      // **注：** 建议使用本地路径；以下为了减少 ng-alain 脚手架的包体大小引用了CDN，可能会有部分功能受影响
+      js: [
+        `//apps.bdimg.com/libs/ueditor/1.4.3.1/ueditor.config.js`,
+        `//apps.bdimg.com/libs/ueditor/1.4.3.1/ueditor.all.min.js`,
+      ],
+      options: {
+        UEDITOR_HOME_URL: `//apps.bdimg.com/libs/ueditor/1.4.3.1/`,
+      },
+    }),
+    SimplemdeModule.forRoot({
+      delay: 300,
+    }),
   ],
   providers: [
+    { provide: ALAIN_I18N_TOKEN, useClass: I18NService, multi: false },
     StartupService,
     {
-      provide: RouteReuseStrategy,
-      useClass: ReuseTabStrategy,
-      deps: [ReuseTabService],
+      provide: APP_INITIALIZER,
+      useFactory: StartupServiceFactory,
+      deps: [StartupService],
+      multi: true,
     },
-    {
-        provide: APP_INITIALIZER,
-        useFactory: StartupServiceFactory,
-        deps: [StartupService],
-        multi: true
-    }
   ],
+  declarations: [AppComponent, LayoutComponent, HeaderComponent],
   bootstrap: [AppComponent],
-  entryComponents: [DemoModalComponent]
 })
-export class AppModule { }
+export class AppModule {
+  constructor(injector: Injector) {
+    Object.keys(EXAMPLE_COMPONENTS).forEach(key => {
+      const element = createCustomElement(EXAMPLE_COMPONENTS[key].component, {
+        injector,
+      });
+      customElements.define(key, element);
+    });
+    // icon
+    customElements.define('nz-icon', createCustomElement(IconComponent, { injector }));
+  }
+}

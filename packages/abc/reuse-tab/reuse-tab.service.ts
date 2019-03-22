@@ -1,13 +1,22 @@
-import { Injectable, OnDestroy, Optional, Injector } from '@angular/core';
-import { ActivatedRouteSnapshot, ActivatedRoute, Router } from '@angular/router';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { MenuService } from '@delon/theme';
+import { Injectable, Injector, OnDestroy } from '@angular/core';
+import {
+  ActivatedRoute,
+  ActivatedRouteSnapshot,
+  ExtraOptions,
+  NavigationEnd,
+  NavigationStart,
+  Router,
+  ROUTER_CONFIGURATION,
+} from '@angular/router';
+import { BehaviorSubject, Observable, Unsubscribable } from 'rxjs';
+
+import { MenuService, ScrollService } from '@delon/theme';
 import {
   ReuseTabCached,
   ReuseTabMatchMode,
   ReuseTabNotify,
   ReuseTitle,
-} from './interface';
+} from './reuse-tab.interfaces';
 
 /**
  * 路由复用类，提供复用所需要一些基本接口
@@ -16,26 +25,38 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class ReuseTabService implements OnDestroy {
+  private _inited = false;
   private _max = 10;
+  private _keepingScroll = false;
   private _debug = false;
   private _mode = ReuseTabMatchMode.Menu;
   private _excludes: RegExp[] = [];
-  private _cachedChange: BehaviorSubject<ReuseTabNotify> = new BehaviorSubject<
-    ReuseTabNotify
-  >(null);
+  private _cachedChange: BehaviorSubject<ReuseTabNotify> = new BehaviorSubject<ReuseTabNotify>(
+    null,
+  );
   private _cached: ReuseTabCached[] = [];
   private _titleCached: { [url: string]: ReuseTitle } = {};
   private _closableCached: { [url: string]: boolean } = {};
+  private _router$: Unsubscribable;
   private removeUrlBuffer: string;
+  private positionBuffer: { [url: string]: [number, number] } = {};
 
-  // region: public
+  private get snapshot() {
+    return this.injector.get(ActivatedRoute).snapshot;
+  }
+
+  // #region public
+
+  get inited() {
+    return this._inited;
+  }
 
   /** 当前路由地址 */
   get curUrl() {
-    return this.getUrl(this.injector.get(ActivatedRoute).snapshot);
+    return this.getUrl(this.snapshot);
   }
 
-  /** 允许最多复用多少个页面，取值范围 `2-100` */
+  /** 允许最多复用多少个页面，取值范围 `2-100`，值发生变更时会强制关闭且忽略可关闭条件 */
   set max(value: number) {
     this._max = Math.min(Math.max(value, 2), 100);
     for (let i = this._cached.length; i > this._max; i--) {
@@ -56,6 +77,14 @@ export class ReuseTabService implements OnDestroy {
   get debug() {
     return this._debug;
   }
+  set keepingScroll(value: boolean) {
+    this._keepingScroll = value;
+    this.initScroll();
+  }
+  get keepingScroll() {
+    return this._keepingScroll;
+  }
+  keepingScrollContainer: Element;
   /** 排除规则，限 `mode=URL` */
   set excludes(values: RegExp[]) {
     if (!values) return;
@@ -153,9 +182,7 @@ export class ReuseTabService implements OnDestroy {
     this._cached.forEach(w => {
       if (!includeNonCloseable && w.closable) this.destroy(w._handle);
     });
-    this._cached = this._cached.filter(
-      w => !includeNonCloseable && !w.closable,
-    );
+    this._cached = this._cached.filter(w => !includeNonCloseable && !w.closable);
 
     this.removeUrlBuffer = null;
 
@@ -184,11 +211,7 @@ export class ReuseTabService implements OnDestroy {
     const start = this._cached.findIndex(w => w.url === url);
     if (start === -1) return;
     const data = this._cached.slice();
-    data.splice(
-      position < 0 ? data.length + position : position,
-      0,
-      data.splice(start, 1)[0],
-    );
+    data.splice(position < 0 ? data.length + position : position, 0, data.splice(start, 1)[0]);
     this._cached = data;
     this._cachedChange.next({
       active: 'move',
@@ -223,7 +246,10 @@ export class ReuseTabService implements OnDestroy {
     if (this._titleCached[url]) return this._titleCached[url];
 
     if (route && route.data && (route.data.titleI18n || route.data.title))
-      return <ReuseTitle>{ text: route.data.title, i18n: route.data.titleI18n };
+      return {
+        text: route.data.title,
+        i18n: route.data.titleI18n,
+      } as ReuseTitle;
 
     const menu = this.mode !== ReuseTabMatchMode.URL ? this.getMenu(url) : null;
     return menu ? { text: menu.text, i18n: menu.i18n } : { text: url };
@@ -257,15 +283,13 @@ export class ReuseTabService implements OnDestroy {
    * @param route 指定路由快照
    */
   getClosable(url: string, route?: ActivatedRouteSnapshot): boolean {
-    if (typeof this._closableCached[url] !== 'undefined')
-      return this._closableCached[url];
+    if (typeof this._closableCached[url] !== 'undefined') return this._closableCached[url];
 
     if (route && route.data && typeof route.data.reuseClosable === 'boolean')
       return route.data.reuseClosable;
 
     const menu = this.mode !== ReuseTabMatchMode.URL ? this.getMenu(url) : null;
-    if (menu && typeof menu.reuseClosable === 'boolean')
-      return menu.reuseClosable;
+    if (menu && typeof menu.reuseClosable === 'boolean') return menu.reuseClosable;
 
     return true;
   }
@@ -305,8 +329,7 @@ export class ReuseTabService implements OnDestroy {
     const url = this.getUrl(route);
     if (url === this.removeUrlBuffer) return false;
 
-    if (route.data && typeof route.data.reuse === 'boolean')
-      return route.data.reuse;
+    if (route.data && typeof route.data.reuse === 'boolean') return route.data.reuse;
 
     if (this.mode !== ReuseTabMatchMode.URL) {
       const menu = this.getMenu(url);
@@ -326,9 +349,9 @@ export class ReuseTabService implements OnDestroy {
   refresh(data?: any) {
     this._cachedChange.next({ active: 'refresh', data });
   }
-  // endregion
+  // #endregion
 
-  // region: privates
+  // #region privates
 
   private destroy(_handle: any) {
     if (_handle && _handle.componentRef && _handle.componentRef.destroy)
@@ -341,30 +364,27 @@ export class ReuseTabService implements OnDestroy {
     console.warn(...args);
   }
 
-  // endregion
+  // #endregion
 
-  constructor(
-    private injector: Injector,
-    @Optional() private menuService: MenuService,
-  ) {}
+  constructor(private injector: Injector, private menuService: MenuService) {}
+
+  init() {
+    this.initScroll();
+    this._inited = true;
+  }
 
   private getMenu(url: string) {
-    const menus = this.menuService ? this.menuService.getPathByUrl(url) : [];
+    const menus = this.menuService.getPathByUrl(url);
     if (!menus || menus.length === 0) return null;
     return menus.pop();
   }
 
   private runHook(method: string, url: string, comp: any) {
-    if (comp.instance && typeof comp.instance[method] === 'function')
-      comp.instance[method]();
+    if (comp.instance && typeof comp.instance[method] === 'function') comp.instance[method]();
   }
 
   private hasInValidRoute(route: ActivatedRouteSnapshot) {
-    return (
-      !route.routeConfig ||
-      route.routeConfig.loadChildren ||
-      route.routeConfig.children
-    );
+    return !route.routeConfig || route.routeConfig.loadChildren || route.routeConfig.children;
   }
 
   /**
@@ -380,18 +400,23 @@ export class ReuseTabService implements OnDestroy {
    * 存储
    */
   store(_snapshot: ActivatedRouteSnapshot, _handle: any) {
-    if (this.count >= this._max) this._cached.shift();
     const url = this.getUrl(_snapshot);
     const idx = this.index(url);
 
     const item: ReuseTabCached = {
       title: this.getTitle(url, _snapshot),
       closable: this.getClosable(url, _snapshot),
+      position: this.getKeepingScroll(url, _snapshot) ? this.positionBuffer[url] : null,
       url,
       _snapshot,
       _handle,
     };
     if (idx === -1) {
+      if (this.count >= this._max) {
+        // Get the oldest closable location
+        const closeIdx = this._cached.findIndex(w => w.closable);
+        if (closeIdx !== -1) this.remove(closeIdx, false);
+      }
       this._cached.push(item);
     } else {
       this._cached[idx] = item;
@@ -437,33 +462,93 @@ export class ReuseTabService implements OnDestroy {
   /**
    * 决定是否应该进行复用路由处理
    */
-  shouldReuseRoute(
-    future: ActivatedRouteSnapshot,
-    curr: ActivatedRouteSnapshot,
-  ): boolean {
+  shouldReuseRoute(future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean {
     let ret = future.routeConfig === curr.routeConfig;
     if (!ret) return false;
 
-    const path = ((future.routeConfig && future.routeConfig.path) ||
-      '') as string;
+    const path = ((future.routeConfig && future.routeConfig.path) || '') as string;
     if (path.length > 0 && ~path.indexOf(':')) {
       const futureUrl = this.getUrl(future);
       const currUrl = this.getUrl(curr);
       ret = futureUrl === currUrl;
     }
     this.di('=====================');
-    this.di(
-      '#shouldReuseRoute',
-      ret,
-      `${this.getUrl(curr)}=>${this.getUrl(future)}`,
-      future,
-      curr,
-    );
+    this.di('#shouldReuseRoute', ret, `${this.getUrl(curr)}=>${this.getUrl(future)}`, future, curr);
     return ret;
   }
 
+  // #region scroll
+
+  /**
+   * 获取 `keepingScroll` 状态，顺序如下：
+   *
+   * 1. 路由配置中 data 属性中包含 `keepingScroll`
+   * 2. 菜单数据中 `keepingScroll` 属性
+   * 3. 组件 `keepingScroll` 值
+   */
+  getKeepingScroll(url: string, route?: ActivatedRouteSnapshot): boolean {
+    if (route && route.data && typeof route.data.keepingScroll === 'boolean')
+      return route.data.keepingScroll;
+
+    const menu = this.mode !== ReuseTabMatchMode.URL ? this.getMenu(url) : null;
+    if (menu && typeof menu.keepingScroll === 'boolean') return menu.keepingScroll;
+
+    return this.keepingScroll;
+  }
+
+  private get isDisabledInRouter(): boolean {
+    const routerConfig: ExtraOptions = this.injector.get(ROUTER_CONFIGURATION, {} as any);
+    return routerConfig.scrollPositionRestoration === 'disabled';
+  }
+
+  private get ss(): ScrollService {
+    return this.injector.get(ScrollService);
+  }
+
+  private initScroll() {
+    if (this._router$) {
+      this._router$.unsubscribe();
+    }
+
+    this._router$ = this.injector.get(Router).events.subscribe(e => {
+      if (e instanceof NavigationStart) {
+        const url = this.curUrl;
+        if (this.getKeepingScroll(url, this.getTruthRoute(this.snapshot))) {
+          this.positionBuffer[url] = this.ss.getScrollPosition(this.keepingScrollContainer);
+        } else {
+          delete this.positionBuffer[url];
+        }
+      } else if (e instanceof NavigationEnd) {
+        const url = this.curUrl;
+        const item = this.get(url);
+        if (
+          item &&
+          item.position &&
+          this.getKeepingScroll(url, this.getTruthRoute(this.snapshot))
+        ) {
+          if (this.isDisabledInRouter) {
+            this.ss.scrollToPosition(this.keepingScrollContainer, item.position);
+          } else {
+            setTimeout(
+              () => this.ss.scrollToPosition(this.keepingScrollContainer, item.position),
+              1,
+            );
+          }
+        }
+      }
+    });
+  }
+
+  // #endregion
+
   ngOnDestroy(): void {
+    const { _cachedChange, _router$ } = this;
+    this.clear();
     this._cached = [];
-    this._cachedChange.unsubscribe();
+    _cachedChange.complete();
+
+    if (_router$) {
+      _router$.unsubscribe();
+    }
   }
 }

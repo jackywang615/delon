@@ -1,34 +1,19 @@
-import { Injectable, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { LazyResult, LazyService } from '@delon/util';
 import { saveAs } from 'file-saver';
-import { LazyService, LazyResult } from '@delon/util';
-import {
-  XlsxExportOptions,
-  DA_XLSX_CONFIG,
-  XlsxConfig,
-  XlsxExportSheet,
-} from './interface';
+
+import { XlsxConfig } from './xlsx.config';
+import { XlsxExportOptions, XlsxExportSheet } from './xlsx.types';
 
 declare var XLSX: any;
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class XlsxService {
-  constructor(
-    @Inject(DA_XLSX_CONFIG) private config: XlsxConfig,
-    private http: HttpClient,
-    private lazy: LazyService,
-  ) {}
+  constructor(private cog: XlsxConfig, private http: HttpClient, private lazy: LazyService) {}
 
   private init(): Promise<LazyResult[]> {
-    const config = Object.assign(
-      {
-        url: `//cdn.bootcss.com/xlsx/0.12.12/xlsx.full.min.js`,
-        modules: [],
-      },
-      this.config,
-    );
-
-    return this.lazy.load([config.url].concat(config.modules));
+    return this.lazy.load([this.cog.url].concat(this.cog.modules));
   }
 
   private read(wb: any): { [key: string]: any[][] } {
@@ -52,17 +37,15 @@ export class XlsxService {
       this.init().then(() => {
         // from url
         if (typeof fileOrUrl === 'string') {
-          this.http
-            .request('GET', fileOrUrl, { responseType: 'arraybuffer' })
-            .subscribe(
-              (res: ArrayBuffer) => {
-                const wb = XLSX.read(new Uint8Array(res), { type: 'array' });
-                resolver(this.read(wb));
-              },
-              (err: any) => {
-                reject(err);
-              },
-            );
+          this.http.request('GET', fileOrUrl, { responseType: 'arraybuffer' }).subscribe(
+            (res: ArrayBuffer) => {
+              const wb = XLSX.read(new Uint8Array(res), { type: 'array' });
+              resolver(this.read(wb));
+            },
+            (err: any) => {
+              reject(err);
+            },
+          );
           return;
         }
         // from file
@@ -81,16 +64,10 @@ export class XlsxService {
     return this.init().then(() => {
       const wb: any = XLSX.utils.book_new();
       if (Array.isArray(options.sheets)) {
-        (<XlsxExportSheet[]>options.sheets).forEach(
-          (value: XlsxExportSheet, index: number) => {
-            const ws: any = XLSX.utils.aoa_to_sheet(value.data);
-            XLSX.utils.book_append_sheet(
-              wb,
-              ws,
-              value.name || `Sheet${index + 1}`,
-            );
-          },
-        );
+        (options.sheets as XlsxExportSheet[]).forEach((value: XlsxExportSheet, index: number) => {
+          const ws: any = XLSX.utils.aoa_to_sheet(value.data);
+          XLSX.utils.book_append_sheet(wb, ws, value.name || `Sheet${index + 1}`);
+        });
       } else {
         wb.SheetNames = Object.keys(options.sheets);
         wb.Sheets = options.sheets;
@@ -98,17 +75,12 @@ export class XlsxService {
 
       if (options.callback) options.callback(wb);
 
-      const wbout: ArrayBuffer = XLSX.write(
-        wb,
-        Object.assign(
-          {
-            bookType: 'xlsx',
-            bookSST: false,
-            type: 'array',
-          },
-          options.opts,
-        ),
-      );
+      const wbout: ArrayBuffer = XLSX.write(wb, {
+        bookType: 'xlsx',
+        bookSST: false,
+        type: 'array',
+        ...options.opts,
+      });
       saveAs(
         new Blob([wbout], { type: 'application/octet-stream' }),
         options.filename || 'export.xlsx',

@@ -1,8 +1,8 @@
-import { Observable, of } from 'rxjs';
-import { map, takeWhile } from 'rxjs/operators';
-import { deepCopy } from '@delon/util';
-import { SFUISchema, SFUISchemaItem, SFUISchemaItemRun } from './schema/ui';
+import { deepCopy, toBoolean } from '@delon/util';
+import { of, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { SFSchema, SFSchemaDefinition, SFSchemaEnum } from './schema';
+import { SFUISchema, SFUISchemaItem, SFUISchemaItemRun } from './schema/ui';
 
 export const FORMATMAPS = {
   'date-time': {
@@ -27,12 +27,15 @@ export function isBlank(o: any) {
 }
 
 export function toBool(value: any, defaultValue: boolean) {
-  return value == null ? defaultValue : `${value}` !== 'false';
+  value = toBoolean(value, true);
+  return value == null ? defaultValue : value;
 }
 
-export function di(...args) {
-  // tslint:disable-next-line:no-console
-  console.warn(...args);
+export function di(ui: SFUISchema, ...args) {
+  if (ui.debug) {
+    // tslint:disable-next-line:no-console
+    console.warn(...args);
+  }
 }
 
 /** 根据 `$ref` 查找 `definitions` */
@@ -58,10 +61,7 @@ function findSchemaDefinition($ref: string, definitions: SFSchemaDefinition) {
 /**
  * 取回Schema，并处理 `$ref` 的关系
  */
-export function retrieveSchema(
-  schema: SFSchema,
-  definitions: SFSchemaDefinition = {},
-): SFSchema {
+export function retrieveSchema(schema: SFSchema, definitions: SFSchemaDefinition = {}): SFSchema {
   if (schema.hasOwnProperty('$ref')) {
     const $refSchema = findSchemaDefinition(schema.$ref, definitions);
     // remove $ref property
@@ -75,11 +75,10 @@ export function retrieveSchema(
 export function resolveIf(schema: SFSchema, ui: SFUISchemaItemRun): SFSchema {
   if (!(schema.hasOwnProperty('if') && schema.hasOwnProperty('then'))) return;
 
-  if (!schema.if.properties)
-    throw new Error(`if: does not contain 'properties'`);
+  if (!schema.if.properties) throw new Error(`if: does not contain 'properties'`);
 
-  const allKeys = Object.keys(schema.properties),
-    ifKeys = Object.keys(schema.if.properties);
+  const allKeys = Object.keys(schema.properties);
+  const ifKeys = Object.keys(schema.if.properties);
   detectKey(allKeys, ifKeys);
   detectKey(allKeys, schema.then.required);
   schema.required = schema.required.concat(schema.then.required);
@@ -98,10 +97,7 @@ export function resolveIf(schema: SFSchema, ui: SFUISchemaItemRun): SFSchema {
   });
 
   schema.then.required.forEach(key => (ui[`$${key}`].visibleIf = visibleIf));
-  if (hasElse)
-    schema.else.required.forEach(
-      key => (ui[`$${key}`].visibleIf = visibleElse),
-    );
+  if (hasElse) schema.else.required.forEach(key => (ui[`$${key}`].visibleIf = visibleElse));
 
   return schema;
 }
@@ -127,35 +123,29 @@ export function orderProperties(properties: string[], order: string[]) {
   const orderHash = arrayToHash(order);
   const extraneous = order.filter(prop => prop !== '*' && !propertyHash[prop]);
   if (extraneous.length) {
-    throw new Error(
-      `ui schema order list contains extraneous ${errorPropList(extraneous)}`,
-    );
+    throw new Error(`ui schema order list contains extraneous ${errorPropList(extraneous)}`);
   }
   const rest = properties.filter(prop => !orderHash[prop]);
   const restIndex = order.indexOf('*');
   if (restIndex === -1) {
     if (rest.length) {
-      throw new Error(
-        `ui schema order list does not contain ${errorPropList(rest)}`,
-      );
+      throw new Error(`ui schema order list does not contain ${errorPropList(rest)}`);
     }
     return order;
   }
   if (restIndex !== order.lastIndexOf('*')) {
-    throw new Error(
-      'ui schema order list contains more than one wildcard item',
-    );
+    throw new Error('ui schema order list contains more than one wildcard item');
   }
   const complete = [...order];
   complete.splice(restIndex, 1, ...rest);
   return complete;
 }
 
-export function getEnum(list: any[], formData: any): SFSchemaEnum[] {
+export function getEnum(list: any[], formData: any, readOnly: boolean): SFSchemaEnum[] {
   if (isBlank(list) || !Array.isArray(list) || list.length === 0) return [];
   if (typeof list[0] !== 'object') {
     list = list.map((item: any) => {
-      return <SFSchemaEnum>{ label: item, value: item };
+      return { label: item, value: item } as SFSchemaEnum;
     });
   }
   if (formData) {
@@ -164,11 +154,15 @@ export function getEnum(list: any[], formData: any): SFSchemaEnum[] {
       if (~formData.indexOf(item.value)) item.checked = true;
     });
   }
+  // fix disabled status
+  if (readOnly) {
+    list.forEach((item: SFSchemaEnum) => (item.disabled = true));
+  }
   return list;
 }
 
-export function getCopyEnum(list: any[], formData: any) {
-  return getEnum(deepCopy(list || []), formData);
+export function getCopyEnum(list: any[], formData: any, readOnly: boolean) {
+  return getEnum(deepCopy(list || []), formData, readOnly);
 }
 
 export function getData(
@@ -178,12 +172,7 @@ export function getData(
   asyncArgs?: any,
 ): Observable<SFSchemaEnum[]> {
   if (typeof ui.asyncData === 'function') {
-    return ui
-      .asyncData(asyncArgs)
-      .pipe(
-        takeWhile(() => ui.__destroy !== true),
-        map(list => getEnum(list, formData)),
-      );
+    return ui.asyncData(asyncArgs).pipe(map(list => getEnum(list, formData, schema.readOnly)));
   }
-  return of(getCopyEnum(schema.enum, formData));
+  return of(getCopyEnum(schema.enum, formData, schema.readOnly));
 }

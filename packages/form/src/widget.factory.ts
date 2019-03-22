@@ -1,15 +1,16 @@
 import {
-  Injectable,
   ComponentFactoryResolver,
-  ViewContainerRef,
   ComponentRef,
+  Injectable,
+  ViewContainerRef,
 } from '@angular/core';
+import { FormProperty } from './model/form.property';
 import { Widget } from './widget';
 
 export class WidgetRegistry {
-  private widgets: { [type: string]: any } = {};
+  private widgets: { [type: string]: Widget<FormProperty> } = {};
 
-  private defaultWidget: any;
+  private defaultWidget: Widget<FormProperty>;
 
   setDefault(widget: any) {
     this.defaultWidget = widget;
@@ -23,7 +24,7 @@ export class WidgetRegistry {
     return this.widgets.hasOwnProperty(type);
   }
 
-  getType(type: string): any {
+  getType(type: string): Widget<FormProperty> {
     if (this.has(type)) {
       return this.widgets[type];
     }
@@ -33,24 +34,15 @@ export class WidgetRegistry {
 
 @Injectable()
 export class WidgetFactory {
-  private resolver: ComponentFactoryResolver;
-  private registry: WidgetRegistry;
+  constructor(private registry: WidgetRegistry, private resolver: ComponentFactoryResolver) {}
 
-  constructor(registry: WidgetRegistry, resolver: ComponentFactoryResolver) {
-    this.registry = registry;
-    this.resolver = resolver;
-  }
-
-  createWidget(
-    container: ViewContainerRef,
-    type: string,
-  ): ComponentRef<Widget<any>> {
+  createWidget(container: ViewContainerRef, type: string): ComponentRef<Widget<FormProperty>> {
     if (!this.registry.has(type)) {
       console.warn(`No widget for type "${type}"`);
     }
 
-    const componentClass = this.registry.getType(type);
-    const componentFactory = this.resolver.resolveComponentFactory<Widget<any>>(
+    const componentClass = this.registry.getType(type) as any;
+    const componentFactory = this.resolver.resolveComponentFactory<Widget<FormProperty>>(
       componentClass,
     );
     return container.createComponent(componentFactory);

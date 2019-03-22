@@ -1,25 +1,24 @@
 import {
-  Rule,
-  Tree,
-  SchematicContext,
   chain,
+  Rule,
   SchematicsException,
+  SchematicContext,
+  Tree,
 } from '@angular-devkit/schematics';
 import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks';
 
-import { Schema as PluginSchema } from './schema';
-import {
-  Project,
-  getWorkspace,
-  getProjectFromWorkspace,
-} from '../utils/devkit-utils/config';
+import { getProject } from '../utils/project';
 import { PluginOptions } from './interface';
+import { Schema as PluginSchema } from './schema';
 
-import { pluginG2 } from './plugin.g2';
+import { pluginAsdf } from './plugin.asdf';
 import { pluginCodeStyle } from './plugin.code-style';
-import { pluginNpm } from './plugin.npm';
-import { pluginYarn } from './plugin.yarn';
+import { pluginDefaultLanguage } from './plugin.default-language';
+import { pluginDocker } from './plugin.docker';
+import { pluginG2 } from './plugin.g2';
 import { pluginHmr } from './plugin.hmr';
+import { pluginIcon } from './plugin.icon';
+import { pluginNetworkEnv } from './plugin.network-env';
 
 function installPackages() {
   return (host: Tree, context: SchematicContext) => {
@@ -29,39 +28,50 @@ function installPackages() {
 
 export default function(options: PluginSchema): Rule {
   return (host: Tree, context: SchematicContext) => {
-    const workspace = getWorkspace(host);
-    const project = getProjectFromWorkspace(workspace);
-    const projectPrefix = (project as any).prefix || 'app';
-    const sourceRoot = (project as any).sourceRoot || 'src';
+    const project = getProject(host, options.project);
     const pluginOptions: PluginOptions = {
       type: options.type,
-      projectPrefix,
-      sourceRoot,
+      name: project.name,
+      projectPrefix: project.prefix,
+      root: project.root,
+      sourceRoot: project.sourceRoot,
       project: options.project,
     };
 
     const rules: Rule[] = [];
     switch (options.name) {
       case 'g2':
-        rules.push(pluginG2(pluginOptions));
+        rules.push(pluginG2(pluginOptions), installPackages());
         break;
       case 'codeStyle':
-        rules.push(pluginCodeStyle(pluginOptions));
+        rules.push(pluginCodeStyle(pluginOptions), installPackages());
         break;
-      case 'npm':
-        rules.push(pluginNpm(pluginOptions));
-        break;
-      case 'yarn':
-        rules.push(pluginYarn(pluginOptions));
+      case 'networkEnv':
+        rules.push(pluginNetworkEnv({ ...pluginOptions, packageManager: options.packageManager }));
         break;
       case 'hmr':
-        rules.push(pluginHmr(pluginOptions));
+        rules.push(pluginHmr(pluginOptions), installPackages());
+        break;
+      case 'docker':
+        rules.push(pluginDocker(pluginOptions));
+        break;
+      case 'defaultLanguage':
+        rules.push(
+          pluginDefaultLanguage({
+            ...pluginOptions,
+            defaultLanguage: options.defaultLanguage,
+          }),
+        );
+        break;
+      case 'icon':
+        rules.push(pluginIcon(pluginOptions));
+        break;
+      case 'asdf':
+        rules.push(pluginAsdf(pluginOptions));
         break;
       default:
         throw new SchematicsException(`Could not find plugin name: ${options.name}`);
     }
-
-    rules.push(installPackages());
 
     return chain(rules)(host, context);
   };

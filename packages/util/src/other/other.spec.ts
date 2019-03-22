@@ -1,4 +1,4 @@
-import { deepGet, deepCopy, copy } from './other';
+import { copy, deepCopy, deepGet, deepMerge, deepMergeKey } from './other';
 
 describe('abc: utils', () => {
   describe('#deepGet', () => {
@@ -42,9 +42,11 @@ describe('abc: utils', () => {
       expect(deepGet(tree, 'status')).toBe(tree.status);
     });
     it('should be return default value when paths include null value', () => {
-      expect(
-        deepGet({ res: {} }, 'res.address.city'),
-      ).toBeUndefined();
+      expect(deepGet({ res: {} }, 'res.address.city')).toBeUndefined();
+    });
+    it('should be get zero value', () => {
+      const res = deepGet({ res: { zero: 0 } }, 'res.zero');
+      expect(res).toBe(0);
     });
   });
 
@@ -77,5 +79,58 @@ describe('abc: utils', () => {
           done();
         });
     });
+  });
+
+  describe('#deepMerge', () => {
+    let original: any;
+    it('should working', () => {
+      const fn = () => {};
+      const time = new Date();
+      original = { a: 1, b: { c: 'c' }, fn, arr2: [], str: 'str', time, bool: true };
+
+      deepMerge(original, { b: { d: 'd' }, arr: [2] });
+
+      expect(original.b.c).toBe('c');
+      expect(original.b.d).toBe('d');
+      expect(original.fn).toBe(fn);
+      expect(original.arr.length).toBe(1);
+      expect(original.arr2.length).toBe(0);
+      expect(original.str).toBe('str');
+      expect(original.time).toBe(time);
+      expect(original.bool).toBe(true);
+    });
+    it('should be only object of original', () => {
+      original = [];
+
+      deepMerge(original, [1, 2], [3, 4]);
+
+      expect(Array.isArray(original)).toBe(true);
+      expect(original.length).toBe(0);
+    });
+    it('should support dynamic params', () => {
+      original = { a: 1, b: 2 };
+
+      deepMerge(original, { c: 3 }, { d: 4 });
+
+      expect(original.a).toBe(1);
+      expect(original.b).toBe(2);
+      expect(original.c).toBe(3);
+      expect(original.d).toBe(4);
+    });
+    it('should be null or undefined', () => {
+      original = { a: null };
+
+      deepMerge(original, { a: null, b: undefined });
+
+      expect(original.a).toBe(null);
+      expect(original.b).toBe(undefined);
+      expect(original.c).toBe(undefined);
+    });
+  });
+
+  it('#deepMergeKey', () => {
+    const original = { arr: [1, 2] };
+    deepMergeKey(original, false, { arr: [3] });
+    expect(original.arr.length).toBe(3);
   });
 });

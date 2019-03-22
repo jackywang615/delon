@@ -7,21 +7,19 @@ import { ArrayConfig } from './array.config';
 export class ArrayService {
   private c: ArrayConfig;
   constructor(cog: DelonUtilConfig) {
-    this.c = Object.assign(
-      <ArrayConfig>{
-        deepMapName: 'deep',
-        parentMapName: 'parent',
-        idMapName: 'id',
-        parentIdMapName: 'parent_id',
-        childrenMapName: 'children',
-        titleMapName: 'title',
-        checkedMapname: 'checked',
-        selectedMapname: 'selected',
-        expandedMapname: 'expanded',
-        disabledMapname: 'disabled',
-      },
-      cog && cog.array,
-    );
+    this.c = {
+      deepMapName: 'deep',
+      parentMapName: 'parent',
+      idMapName: 'id',
+      parentIdMapName: 'parent_id',
+      childrenMapName: 'children',
+      titleMapName: 'title',
+      checkedMapname: 'checked',
+      selectedMapname: 'selected',
+      expandedMapname: 'expanded',
+      disabledMapname: 'disabled',
+      ...(cog && cog.array),
+    };
   }
   /**
    * 将树结构转换成数组结构
@@ -41,32 +39,30 @@ export class ArrayService {
       cb?: (item: any, parent: any, deep: number) => void;
     },
   ): any[] {
-    options = Object.assign(
-      {
-        deepMapName: this.c.deepMapName,
-        parentMapName: this.c.parentMapName,
-        childrenMapName: this.c.childrenMapName,
-        clearChildren: true,
-        cb: null,
-      },
-      options,
-    );
+    options = {
+      deepMapName: this.c.deepMapName,
+      parentMapName: this.c.parentMapName,
+      childrenMapName: this.c.childrenMapName,
+      clearChildren: true,
+      cb: null,
+      ...options,
+    };
     const result: any[] = [];
     const inFn = (list: any[], parent: any, deep: number) => {
       for (const i of list) {
         i[options.deepMapName] = deep;
         i[options.parentMapName] = parent;
-        if (options.cb) options.cb(i, parent, deep);
+        if (options.cb) {
+          options.cb(i, parent, deep);
+        }
         result.push(i);
         const children = i[options.childrenMapName];
-        if (
-          children != null &&
-          Array.isArray(children) &&
-          children.length > 0
-        ) {
+        if (children != null && Array.isArray(children) && children.length > 0) {
           inFn(children, i, deep + 1);
         }
-        if (options.clearChildren) delete i[options.childrenMapName];
+        if (options.clearChildren) {
+          delete i[options.childrenMapName];
+        }
       }
     };
     inFn(tree, 1, null);
@@ -89,23 +85,23 @@ export class ArrayService {
       cb?: (item: any) => void;
     },
   ): any[] {
-    options = Object.assign(
-      {
-        idMapName: this.c.idMapName,
-        parentIdMapName: this.c.parentIdMapName,
-        childrenMapName: this.c.childrenMapName,
-        cb: null,
-      },
-      options,
-    );
+    options = {
+      idMapName: this.c.idMapName,
+      parentIdMapName: this.c.parentIdMapName,
+      childrenMapName: this.c.childrenMapName,
+      cb: null,
+      ...options,
+    };
     const tree: any[] = [];
     const childrenOf = {};
     for (const item of arr) {
-      const id = item[options.idMapName],
-        pid = item[options.parentIdMapName];
+      const id = item[options.idMapName];
+      const pid = item[options.parentIdMapName];
       childrenOf[id] = childrenOf[id] || [];
       item[options.childrenMapName] = childrenOf[id];
-      if (options.cb) options.cb(item);
+      if (options.cb) {
+        options.cb(item);
+      }
       if (pid) {
         childrenOf[pid] = childrenOf[pid] || [];
         childrenOf[pid].push(item);
@@ -142,21 +138,18 @@ export class ArrayService {
       cb?: (item: any, parent: any, deep: number) => void;
     },
   ): NzTreeNode[] {
-    options = Object.assign(
-      {
-        expanded: false,
-        idMapName: this.c.idMapName,
-        parentIdMapName: this.c.parentIdMapName,
-        titleMapName: this.c.titleMapName,
-        isLeafMapName: 'isLeaf',
-        checkedMapname: this.c.checkedMapname,
-        selectedMapname: this.c.selectedMapname,
-        expandedMapname: this.c.expandedMapname,
-        disabledMapname: this.c.disabledMapname,
-        cb: null,
-      },
-      options,
-    );
+    options = {
+      idMapName: this.c.idMapName,
+      parentIdMapName: this.c.parentIdMapName,
+      titleMapName: this.c.titleMapName,
+      isLeafMapName: 'isLeaf',
+      checkedMapname: this.c.checkedMapname,
+      selectedMapname: this.c.selectedMapname,
+      expandedMapname: this.c.expandedMapname,
+      disabledMapname: this.c.disabledMapname,
+      cb: null,
+      ...options,
+    };
     const tree = this.arrToTree(arr, {
       idMapName: options.idMapName,
       parentIdMapName: options.parentIdMapName,
@@ -174,7 +167,9 @@ export class ArrayService {
       } else {
         item.isLeaf = item[options.isLeafMapName];
       }
-      if (options.cb) options.cb(item, parent, deep);
+      if (options.cb) {
+        options.cb(item, parent, deep);
+      }
     });
     return tree.map(node => new NzTreeNode(node));
   }
@@ -189,13 +184,11 @@ export class ArrayService {
       /** 子项名，默认：`'children'` */
       childrenMapName?: string;
     },
-  ) {
-    options = Object.assign(
-      {
-        childrenMapName: this.c.childrenMapName,
-      },
-      options,
-    );
+  ): void {
+    options = {
+      childrenMapName: this.c.childrenMapName,
+      ...options,
+    };
     const inFn = (data: any[], parent: any, deep: number) => {
       for (const item of data) {
         cb(item, parent, deep);
@@ -222,30 +215,22 @@ export class ArrayService {
       cb?: (item: NzTreeNode, parent: NzTreeNode, deep: number) => any;
     },
   ): any[] {
-    options = Object.assign(
-      {
-        includeHalfChecked: true,
-      },
-      options,
-    );
+    options = {
+      includeHalfChecked: true,
+      ...options,
+    };
     const keys: any[] = [];
-    this.visitTree(
-      tree,
-      (item: NzTreeNode, parent: NzTreeNode, deep: number) => {
-        if (
-          item.isChecked ||
-          (options.includeHalfChecked && item.isHalfChecked)
-        ) {
-          keys.push(
-            options.cb
-              ? options.cb(item, parent, deep)
-              : options.keyMapName
-                ? item.origin[options.keyMapName]
-                : item.key,
-          );
-        }
-      },
-    );
+    this.visitTree(tree, (item: NzTreeNode, parent: NzTreeNode, deep: number) => {
+      if (item.isChecked || (options.includeHalfChecked && item.isHalfChecked)) {
+        keys.push(
+          options.cb
+            ? options.cb(item, parent, deep)
+            : options.keyMapName
+            ? item.origin[options.keyMapName]
+            : item.key,
+        );
+      }
+    });
     return keys;
   }
 }

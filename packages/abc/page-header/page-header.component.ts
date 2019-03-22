@@ -1,133 +1,111 @@
 import {
-  Component,
-  Input,
-  TemplateRef,
-  ContentChild,
-  OnInit,
-  OnChanges,
-  Inject,
-  Optional,
-  ViewChild,
-  ElementRef,
   AfterViewInit,
-  Renderer2,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  Inject,
+  Input,
+  OnChanges,
   OnDestroy,
+  OnInit,
+  Optional,
+  Renderer2,
+  TemplateRef,
+  ViewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
-import { toBoolean, isEmpty } from '@delon/util';
+import { NavigationEnd, Router, RouterEvent } from '@angular/router';
+import { NzAffixComponent } from 'ng-zorro-antd';
+import { merge, Subject } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/operators';
+
+import { ReuseTabService } from '@delon/abc/reuse-tab';
 import {
-  MenuService,
-  ALAIN_I18N_TOKEN,
   AlainI18NService,
+  ALAIN_I18N_TOKEN,
   Menu,
+  MenuService,
+  SettingsService,
   TitleService,
 } from '@delon/theme';
-import { ReuseTabService } from '../reuse-tab/reuse-tab.service';
+import { isEmpty, InputBoolean, InputNumber } from '@delon/util';
 
-import { AdPageHeaderConfig } from './page-header.config';
-import { Subscription } from 'rxjs';
+import { PageHeaderConfig } from './page-header.config';
+
+interface PageHeaderPath {
+  title?: string;
+  link?: string[];
+}
 
 @Component({
   selector: 'page-header',
   templateUrl: './page-header.component.html',
-  host: {
-    '[class.content__title]': 'true',
-    '[class.ad-ph]': 'true',
-  },
-  preserveWhitespaces: false,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PageHeaderComponent
-  implements OnInit, OnChanges, AfterViewInit, OnDestroy {
+export class PageHeaderComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   private inited = false;
-  private i18n$: Subscription;
-  @ViewChild('conTpl') private conTpl: ElementRef;
+  private unsubscribe$ = new Subject<void>();
+  @ViewChild('conTpl')
+  private conTpl: ElementRef;
+  @ViewChild('affix')
+  private affix: NzAffixComponent;
   private _menus: Menu[];
 
   private get menus() {
     if (this._menus) {
       return this._menus;
     }
-    this._menus = this.menuSrv.getPathByUrl(this.route.url);
+    this._menus = this.menuSrv.getPathByUrl(
+      this.router.url.split('?')[0],
+      this.recursiveBreadcrumb,
+    );
 
     return this._menus;
   }
 
-  // region fields
+  _titleVal: string;
+  paths: PageHeaderPath[] = [];
+
+  // #region fields
 
   _title: string;
-  _titleTpl: TemplateRef<any>;
+  _titleTpl: TemplateRef<void>;
   @Input()
-  set title(value: string | TemplateRef<any>) {
+  set title(value: string | TemplateRef<void>) {
     if (value instanceof TemplateRef) {
       this._title = null;
       this._titleTpl = value;
     } else {
       this._title = value;
     }
+    this._titleVal = this._title;
   }
 
+  @Input() @InputBoolean() loading = false;
+  @Input() @InputBoolean() wide = false;
   @Input() home: string;
+  @Input() homeLink: string;
+  @Input() homeI18n: string;
+  @Input() @InputBoolean() autoBreadcrumb: boolean;
+  @Input() @InputBoolean() autoTitle: boolean;
+  @Input() @InputBoolean() syncTitle: boolean;
+  @Input() @InputBoolean() fixed: boolean;
+  @Input() @InputNumber() fixedOffsetTop: number;
+  @Input() breadcrumb: TemplateRef<void>;
+  @Input() @InputBoolean() recursiveBreadcrumb: boolean;
+  @Input() logo: TemplateRef<void>;
+  @Input() action: TemplateRef<void>;
+  @Input() content: TemplateRef<void>;
+  @Input() extra: TemplateRef<void>;
+  @Input() tab: TemplateRef<void>;
 
-  @Input() home_link: string;
-
-  @Input() home_i18n: string;
-
-  /**
-   * 自动生成导航，以当前路由从主菜单中定位
-   */
-  @Input()
-  get autoBreadcrumb() {
-    return this._autoBreadcrumb;
-  }
-  set autoBreadcrumb(value: any) {
-    this._autoBreadcrumb = toBoolean(value);
-  }
-  private _autoBreadcrumb = true;
-
-  /**
-   * 自动生成标题，以当前路由从主菜单中定位
-   */
-  @Input()
-  get autoTitle() {
-    return this._autoTitle;
-  }
-  set autoTitle(value: any) {
-    this._autoTitle = toBoolean(value);
-  }
-  private _autoTitle = true;
-
-  /**
-   * 是否自动将标题同步至 `TitleService`、`ReuseService` 下，仅 `title` 为 `string` 类型时有效
-   */
-  @Input()
-  get syncTitle() {
-    return this._syncTitle;
-  }
-  set syncTitle(value: any) {
-    this._syncTitle = toBoolean(value);
-  }
-  private _syncTitle = false;
-
-  paths: any[] = [];
-
-  @ContentChild('breadcrumb') breadcrumb: TemplateRef<any>;
-
-  @ContentChild('logo') logo: TemplateRef<any>;
-
-  @ContentChild('action') action: TemplateRef<any>;
-
-  @ContentChild('content') content: TemplateRef<any>;
-
-  @ContentChild('extra') extra: TemplateRef<any>;
-
-  @ContentChild('tab') tab: TemplateRef<any>;
-
-  // endregion
+  // #endregion
 
   constructor(
-    cog: AdPageHeaderConfig,
+    cog: PageHeaderConfig,
+    settings: SettingsService,
     private renderer: Renderer2,
-    private route: Router,
+    private router: Router,
     private menuSrv: MenuService,
     @Optional()
     @Inject(ALAIN_I18N_TOKEN)
@@ -138,23 +116,41 @@ export class PageHeaderComponent
     @Optional()
     @Inject(ReuseTabService)
     private reuseSrv: ReuseTabService,
+    private cdr: ChangeDetectorRef,
   ) {
-    Object.assign(this, cog);
-    if (this.i18nSrv)
-      this.i18n$ = this.i18nSrv.change.subscribe(() => this.refresh());
+    Object.assign(this, { ...new PageHeaderConfig(), ...cog });
+    settings.notify
+      .pipe(
+        takeUntil(this.unsubscribe$),
+        filter(w => this.affix && w.type === 'layout' && w.name === 'collapsed'),
+      )
+      .subscribe(() => this.affix.updatePosition({} as any));
+
+    merge(
+      menuSrv.change.pipe(filter(() => this.inited)),
+      router.events.pipe(filter((event: RouterEvent) => event instanceof NavigationEnd)),
+      i18nSrv.change,
+    )
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        this._menus = null;
+        this.refresh();
+      });
   }
 
   refresh() {
     this.setTitle().genBreadcrumb();
+    this.cdr.detectChanges();
   }
 
-  genBreadcrumb() {
-    if (this.breadcrumb || !this.autoBreadcrumb || this.menus.length <= 0)
+  private genBreadcrumb() {
+    if (this.breadcrumb || !this.autoBreadcrumb || this.menus.length <= 0) {
+      this.paths = [];
       return;
-    const paths: any[] = [];
+    }
+    const paths: PageHeaderPath[] = [];
     this.menus.forEach(item => {
-      if (typeof item.hideInBreadcrumb !== 'undefined' && item.hideInBreadcrumb)
-        return;
+      if (typeof item.hideInBreadcrumb !== 'undefined' && item.hideInBreadcrumb) return;
       let title = item.text;
       if (item.i18n && this.i18nSrv) title = this.i18nSrv.fanyi(item.i18n);
       paths.push({ title, link: item.link && [item.link] });
@@ -162,19 +158,15 @@ export class PageHeaderComponent
     // add home
     if (this.home) {
       paths.splice(0, 0, {
-        title:
-          (this.home_i18n &&
-            this.i18nSrv &&
-            this.i18nSrv.fanyi(this.home_i18n)) ||
-          this.home,
-        link: [this.home_link],
+        title: (this.homeI18n && this.i18nSrv && this.i18nSrv.fanyi(this.homeI18n)) || this.home,
+        link: [this.homeLink],
       });
     }
     this.paths = paths;
     return this;
   }
 
-  setTitle() {
+  private setTitle() {
     if (
       typeof this._title === 'undefined' &&
       typeof this._titleTpl === 'undefined' &&
@@ -184,15 +176,15 @@ export class PageHeaderComponent
       const item = this.menus[this.menus.length - 1];
       let title = item.text;
       if (item.i18n && this.i18nSrv) title = this.i18nSrv.fanyi(item.i18n);
-      this._title = title;
+      this._titleVal = title;
     }
 
-    if (this._title && this.syncTitle) {
+    if (this._titleVal && this.syncTitle) {
       if (this.titleSrv) {
-        this.titleSrv.setTitle(this._title);
+        this.titleSrv.setTitle(this._titleVal);
       }
       if (this.reuseSrv) {
-        this.reuseSrv.title = this._title;
+        this.reuseSrv.title = this._titleVal;
       }
     }
 
@@ -221,6 +213,8 @@ export class PageHeaderComponent
   }
 
   ngOnDestroy(): void {
-    if (this.i18n$) this.i18n$.unsubscribe();
+    const { unsubscribe$ } = this;
+    unsubscribe$.next();
+    unsubscribe$.complete();
   }
 }

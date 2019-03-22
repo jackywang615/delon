@@ -1,3 +1,4 @@
+export * from './src/addon/string_template_outlet';
 export * from './src/string/string';
 
 export * from './src/time/time';
@@ -15,4 +16,4 @@ export * from './src/array/array.config';
 export * from './src/array/array.service';
 
 export * from './src/util.config';
-export * from './util.module';
+export * from './src/util.module';

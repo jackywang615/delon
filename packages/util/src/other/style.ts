@@ -1,21 +1,12 @@
 import { Renderer2 } from '@angular/core';
 
-function removeClass(
-  el: HTMLElement,
-  classMap: object,
-  renderer: Renderer2,
-): void {
-  // tslint:disable-next-line:forin
+function removeClass(el: HTMLElement, classMap: object, renderer: Renderer2): void {
   for (const i in classMap) {
     renderer.removeClass(el, i);
   }
 }
 
-function addClass(
-  el: HTMLElement,
-  classMap: object,
-  renderer: Renderer2,
-): void {
+function addClass(el: HTMLElement, classMap: object, renderer: Renderer2): void {
   for (const i in classMap) {
     if (classMap[i]) {
       renderer.addClass(el, i);
@@ -29,13 +20,13 @@ function addClass(
  * ```ts
  * updateHostClass(
  *  this.el.nativeElement,
+ *  this.renderer,
  *  {
  *    [ 'classname' ]: true,
  *    [ 'classname' ]: this.type === '1',
  *    [ this.cls ]: true,
  *    [ `a-${this.cls}` ]: true
- *  },
- *  this.renderer)
+ *  })
  * ```
  *
  * @param [cleanAll] 是否先清理所有 `class` 值，默认：`false`
@@ -44,7 +35,7 @@ export function updateHostClass(
   el: HTMLElement,
   renderer: Renderer2,
   classMap: object,
-  cleanAll = false
+  cleanAll: boolean = false,
 ): void {
   if (cleanAll === true) {
     renderer.removeAttribute(el, 'class');

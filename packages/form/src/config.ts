@@ -1,7 +1,9 @@
-import { SFRenderSchema, SFUISchemaItem } from './schema/ui';
+import { Injectable } from '@angular/core';
 import { ERRORSDEFAULT } from './errors';
 import { SFButton } from './interface';
+import { SFUISchemaItem } from './schema/ui';
 
+@Injectable({ providedIn: 'root' })
 export class DelonFormConfig {
   /**
    * 是否忽略某些数据类型校验 `ERRORSDEFAULT`，默认：`[ 'type', 'enum' ]`
@@ -19,7 +21,7 @@ export class DelonFormConfig {
    * - `true` 每一次都校验
    * - `false` 提交时校验
    */
-  liveValidate? = true;
+  liveValidate?: boolean = true;
   /**
    * 指定表单 `autocomplete` 值，默认：`on`
    */
@@ -27,11 +29,11 @@ export class DelonFormConfig {
   /**
    * 是否立即呈现错误视觉，默认：`false`
    */
-  firstVisual? = false;
+  firstVisual?: boolean = false;
   /**
    * 是否只展示错误视觉不显示错误文本，默认：`false`
    */
-  onlyVisual? = false;
+  onlyVisual?: boolean = false;
   /**
    * 自定义通用错误信息
    */
@@ -48,25 +50,27 @@ export class DelonFormConfig {
    * 按钮风格
    */
   button?: SFButton = {
-    submit: '提交',
     submit_type: 'primary',
-    reset: '重置',
     reset_type: 'default',
   };
   /**
    * date小部件：`type="string"` 且不指定 `schema.format` 和 `ui.format` 时日期格式，默认：`YYYY-MM-DD HH:mm:ss`
    */
-  uiDateStringFormat? = 'YYYY-MM-DD HH:mm:ss';
+  uiDateStringFormat?: string = 'YYYY-MM-DD HH:mm:ss';
   /**
    * date小部件：`type="number"` 且不指定 `schema.format` 和 `ui.format` 时日期格式，默认：`x` 13位Unix Timestamp
    */
-  uiDateNumberFormat? = 'x';
+  uiDateNumberFormat?: string = 'x';
   /**
    * time小部件：`type="string"` 且不指定 `schema.format` 和 `ui.format` 时日期格式，默认：`HH:mm:ss`
    */
-  uiTimeStringFormat? = 'HH:mm:ss';
+  uiTimeStringFormat?: string = 'HH:mm:ss';
   /**
    * time小部件：`type="number"` 且不指定 `schema.format` 和 `ui.format` 时日期格式，默认：`x` 13位Unix Timestamp，日期统一使用 `1970-01-01`
    */
-  uiTimeNumberFormat? = 'x';
+  uiTimeNumberFormat?: string = 'x';
+  /**
+   * 指定 `format: 'email'` 的默认Email后缀
+   */
+  uiEmailSuffixes?: string[] = ['qq.com', '163.com', 'gmail.com', '126.com', 'aliyun.com'];
 }

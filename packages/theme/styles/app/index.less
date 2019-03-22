@@ -1,36 +1,21 @@
-@import "./_freak";
-@import "./mixins/index";
-@import "./_functions";
+@import './_freak.less';
+@import './mixins/index.less';
+@import './_functions.less';
 
-// antd patch
-@import "./_antd-patch";
+// Angular
+@import './ng/index.less';
+
+// Antd patch
+@import './antd/index.less';
 
 // Core CSS
-@import "./router";
-@import "./type";
+@import './_type.less';
 
-// Layout
-@import "./layout";
-@import "./header";
-@import "./sidebar";
-@import "./scrollbar";
-
-// Component
-@import "./masonry-grid";
-@import "./widget";
-@import "./placeholder";
-@import "./half-float";
-@import "./router-progress-bar";
-@import "./badge";
-@import "./table";
-@import "./form";
-
-// pro
-@import "./pro/form";
+// widgets
+@import './widgets/index.less';
 
 // @delon
-@import "./delon/form";
+@import './delon/index.less';
 
-// Other
-@import "./utils/index";
-@import "./acl";
+// Utils
+@import './utils/index.less';

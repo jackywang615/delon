@@ -1,18 +1,14 @@
-import { Injectable, ElementRef } from '@angular/core';
-import {
-  Overlay,
-  OverlayRef,
-  ConnectionPositionPair,
-} from '@angular/cdk/overlay';
+import { ConnectionPositionPair, Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
-import { Subscription, Subject } from 'rxjs';
+import { ElementRef, Injectable } from '@angular/core';
+import { Subject, Subscription } from 'rxjs';
 
+import { ReuseTabContextMenuComponent } from './reuse-tab-context-menu.component';
 import {
+  ReuseContextCloseEvent,
   ReuseContextEvent,
   ReuseContextI18n,
-  ReuseContextCloseEvent,
-} from './interface';
-import { ReuseTabContextMenuComponent } from './reuse-tab-context-menu.component';
+} from './reuse-tab.interfaces';
 
 @Injectable()
 export class ReuseTabContextService {
@@ -20,9 +16,7 @@ export class ReuseTabContextService {
   i18n: ReuseContextI18n;
 
   show: Subject<ReuseContextEvent> = new Subject<ReuseContextEvent>();
-  close: Subject<ReuseContextCloseEvent> = new Subject<
-    ReuseContextCloseEvent
-  >();
+  close: Subject<ReuseContextCloseEvent> = new Subject<ReuseContextCloseEvent>();
 
   constructor(private overlay: Overlay) {}
 
@@ -35,7 +29,7 @@ export class ReuseTabContextService {
 
   open(context: ReuseContextEvent) {
     this.remove();
-    const { event, item } = context;
+    const { event, item, customContextMenu } = context;
     const fakeElement = new ElementRef({
       getBoundingClientRect: (): ClientRect => ({
         bottom: event.clientY,
@@ -62,15 +56,14 @@ export class ReuseTabContextService {
       .withPositions(positions);
     this.ref = this.overlay.create({
       positionStrategy,
-      panelClass: 'reuse-tab-cm',
+      panelClass: 'reuse-tab__cm',
       scrollStrategy: this.overlay.scrollStrategies.close(),
     });
-    const comp = this.ref.attach(
-      new ComponentPortal(ReuseTabContextMenuComponent),
-    );
+    const comp = this.ref.attach(new ComponentPortal(ReuseTabContextMenuComponent));
     const instance = comp.instance;
     instance.i18n = this.i18n;
     instance.item = { ...item };
+    instance.customContextMenu = customContextMenu;
     instance.event = event;
 
     const sub$ = new Subscription();

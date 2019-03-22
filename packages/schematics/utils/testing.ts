@@ -1,8 +1,8 @@
+import { SchematicTestRunner, UnitTestTree } from '@angular-devkit/schematics/testing';
 import { join } from 'path';
-import {
-  SchematicTestRunner,
-  UnitTestTree,
-} from '@angular-devkit/schematics/testing';
+import { Schema as NgAddSchema } from '../ng-add/schema.d';
+
+export const APPNAME = 'foo';
 
 export function createNgRunner() {
   return new SchematicTestRunner(
@@ -12,14 +12,11 @@ export function createNgRunner() {
 }
 
 export function createAlainRunner() {
-  return new SchematicTestRunner(
-    'schematics',
-    join(__dirname, '../collection.json'),
-  );
+  return new SchematicTestRunner('schematics', join(__dirname, '../collection.json'));
 }
 
 export function createAlainApp(
-  ngAddOptions?: object,
+  ngAddOptions?: NgAddSchema,
 ): {
   runner: SchematicTestRunner;
   tree: UnitTestTree;
@@ -27,13 +24,13 @@ export function createAlainApp(
   const baseRunner = createNgRunner();
   const workspaceTree = baseRunner.runSchematic('workspace', {
     name: 'workspace',
-    newProjectRoot: '',
+    newProjectRoot: 'projects',
     version: '6.0.0',
   });
   const appTree = baseRunner.runSchematic(
     'application',
     {
-      name: 'foo',
+      name: APPNAME,
       inlineStyle: false,
       inlineTemplate: false,
       routing: false,
@@ -46,12 +43,10 @@ export function createAlainApp(
   const alainRunner = createAlainRunner();
   const tree = alainRunner.runSchematic(
     'ng-add',
-    Object.assign(
-      {
-        skipPackageJson: false,
-      },
-      ngAddOptions,
-    ),
+    {
+      skipPackageJson: false,
+      ...ngAddOptions,
+    },
     appTree,
   );
   return { runner: alainRunner, tree };
@@ -65,17 +60,13 @@ export function createAlainAndModuleApp(
   tree: UnitTestTree;
 } {
   const res = createAlainApp(ngAddOptions);
-  res.tree = res.runner.runSchematic(
-    'module',
-    { name, project: 'foo', routing: true },
-    res.tree,
-  );
+  res.tree = res.runner.runSchematic('module', { name, project: APPNAME, routing: true }, res.tree);
   return res;
 }
 
 export function createTestApp(): UnitTestTree {
   return createNgRunner().runSchematic('ng-new', {
-    name: 'foo',
+    name: APPNAME,
     directory: '',
     version: '6.0.0',
     routing: true,

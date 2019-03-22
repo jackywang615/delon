@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 
 import { numberToChinese } from './number-to-chinese';
-import { AdNumberToChineseModule } from './number-to-chinese.module';
+import { NumberToChineseModule } from './number-to-chinese.module';
 
 describe('abc: number-to-chinese', () => {
   describe('[service]', () => {
@@ -38,12 +38,10 @@ describe('abc: number-to-chinese', () => {
         options: { minusSymbol: '欠' },
       },
     ].forEach((item: any) => {
-      it(`${typeof item.num === 'string' ? '[string]' : ''}${
-        item.rmb ? 'RMB:' : ''
-      }${item.num} muse be ${item.value}`, () => {
-        expect(numberToChinese(item.num, item.rmb, item.options || null)).toBe(
-          item.value,
-        );
+      it(`${typeof item.num === 'string' ? '[string]' : ''}${item.rmb ? 'RMB:' : ''}${
+        item.num
+      } muse be ${item.value}`, () => {
+        expect(numberToChinese(item.num, item.rmb, item.options || null)).toBe(item.value);
       });
     });
 
@@ -65,7 +63,7 @@ describe('abc: number-to-chinese', () => {
 
     beforeEach(() => {
       TestBed.configureTestingModule({
-        imports: [AdNumberToChineseModule.forRoot()],
+        imports: [NumberToChineseModule],
         declarations: [TestComponent],
       });
       fixture = TestBed.createComponent(TestComponent);
@@ -83,8 +81,7 @@ describe('abc: number-to-chinese', () => {
         fixture.componentInstance.minusSymbol = item.minusSymbol;
         fixture.detectChanges();
         expect(
-          (fixture.debugElement.query(By.css('#result'))
-            .nativeElement as HTMLElement).innerHTML,
+          (fixture.debugElement.query(By.css('#result')).nativeElement as HTMLElement).innerHTML,
         ).toBe(item.result);
       });
     });
@@ -92,7 +89,9 @@ describe('abc: number-to-chinese', () => {
 });
 
 @Component({
-  template: `<div id="result" [innerHTML]="value | n2c:rmb:minusSymbol"></div>`,
+  template: `
+    <div id="result" [innerHTML]="value | n2c: rmb:minusSymbol"></div>
+  `,
 })
 class TestComponent {
   value: number | string = 1;

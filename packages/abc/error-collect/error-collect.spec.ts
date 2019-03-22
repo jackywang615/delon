@@ -1,28 +1,13 @@
-import {
-  TestBed,
-  ComponentFixture,
-  fakeAsync,
-  tick,
-} from '@angular/core/testing';
-import {
-  Component,
-  DebugElement,
-  Injector,
-  OnInit,
-  ViewChild,
-} from '@angular/core';
+import { Component, DebugElement, Injector, OnInit, ViewChild } from '@angular/core';
+import { inject, ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { By } from '@angular/platform-browser';
-import {
-  ReactiveFormsModule,
-  FormBuilder,
-  FormGroup,
-  Validators,
-} from '@angular/forms';
 
-import { NzFormModule, NzInputModule } from 'ng-zorro-antd';
+import { NgZorroAntdModule } from 'ng-zorro-antd';
 
-import { AdErrorCollectModule } from './error-collect.module';
 import { ErrorCollectComponent } from './error-collect.component';
+import { ErrorCollectConfig } from './error-collect.config';
+import { ErrorCollectModule } from './error-collect.module';
 
 describe('abc: error-collect', () => {
   let fixture: ComponentFixture<TestComponent>;
@@ -32,12 +17,7 @@ describe('abc: error-collect', () => {
 
   beforeEach(() => {
     injector = TestBed.configureTestingModule({
-      imports: [
-        AdErrorCollectModule.forRoot(),
-        ReactiveFormsModule,
-        NzFormModule,
-        NzInputModule,
-      ],
+      imports: [ErrorCollectModule, ReactiveFormsModule, NgZorroAntdModule],
       declarations: [TestComponent],
     });
   });
@@ -60,6 +40,14 @@ describe('abc: error-collect', () => {
     if (context) context.comp.ngOnDestroy();
   });
 
+  it('General Configuration', inject([ErrorCollectConfig], (cog: ErrorCollectConfig) => {
+    cog.offsetTop = 10;
+    fixture = TestBed.createComponent(TestComponent);
+    context = fixture.componentInstance;
+    expect(context.comp.freq).toBe(500);
+    expect(context.comp.offsetTop).toBe(10);
+  }));
+
   describe('[default]', () => {
     beforeEach(() => getPropertiesAndCreate());
     it('should be collect error', (done: () => void) => {
@@ -75,8 +63,7 @@ describe('abc: error-collect', () => {
         const el = dl.query(By.css('.has-error')).nativeElement as HTMLElement;
         spyOn(el, 'scrollIntoView');
         expect(el.scrollIntoView).not.toHaveBeenCalled();
-        (dl.query(By.css('error-collect'))
-          .nativeElement as HTMLElement).click();
+        (dl.query(By.css('error-collect')).nativeElement as HTMLElement).click();
         expect(el.scrollIntoView).toHaveBeenCalled();
         done();
       }, 21);
@@ -99,34 +86,32 @@ describe('abc: error-collect', () => {
     expect(count).toBe(0);
   });
 
-  it('should be throw [未找到有效 form 元素] if no form element', () => {
+  it('should be throw [No found form element] if no form element', () => {
     expect(() => {
-      TestBed.overrideTemplate(
-        TestComponent,
-        `<error-collect #ec [freq]="freq"></error-collect>`,
-      )
+      TestBed.overrideTemplate(TestComponent, `<error-collect #ec [freq]="freq"></error-collect>`)
         .createComponent(TestComponent)
         .detectChanges();
-    }).toThrowError('未找到有效 form 元素');
+    }).toThrowError('No found form element');
   });
 });
 
 @Component({
   template: `
     <form nz-form [formGroup]="validateForm">
-        <nz-form-item>
-            <nz-form-control>
-                <input nz-input formControlName="email" id="email">
-            </nz-form-control>
-        </nz-form-item>
-        <error-collect #ec [freq]="freq" [offsetTop]="offsetTop"></error-collect>
+      <nz-form-item>
+        <nz-form-control>
+          <input nz-input formControlName="email" id="email" />
+        </nz-form-control>
+      </nz-form-item>
+      <error-collect #ec [freq]="freq" [offsetTop]="offsetTop"></error-collect>
     </form>
-    `,
+  `,
 })
 class TestComponent implements OnInit {
   freq = 20;
-  offsetTop = 65 + 8 * 2;
-  @ViewChild('ec') comp: ErrorCollectComponent;
+  offsetTop = 65 + 16;
+  @ViewChild('ec')
+  comp: ErrorCollectComponent;
   validateForm: FormGroup;
   constructor(fb: FormBuilder) {
     this.validateForm = fb.group({

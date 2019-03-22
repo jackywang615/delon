@@ -4,22 +4,29 @@ import { ControlWidget } from '@delon/form';
 @Component({
   selector: 'sf-tinymce',
   template: `
-  <sf-item-wrap [id]="id" [schema]="schema" [ui]="ui" [showError]="showError" [error]="error" [showTitle]="schema.title">
-    <tinymce
-      [ngModel]="value"
-      (ngModelChange)="change($event)"
-      [config]="config"
-      [loading]="loading">
-    </tinymce>
-  </sf-item-wrap>
+    <sf-item-wrap
+      [id]="id"
+      [schema]="schema"
+      [ui]="ui"
+      [showError]="showError"
+      [error]="error"
+      [showTitle]="schema.title"
+    >
+      <tinymce
+        [ngModel]="value"
+        (ngModelChange)="change($event)"
+        [config]="config"
+        [loading]="loading"
+      >
+      </tinymce>
+    </sf-item-wrap>
   `,
-  preserveWhitespaces: false,
 })
 // tslint:disable-next-line:component-class-suffix
 export class TinymceWidget extends ControlWidget implements OnInit {
   static readonly KEY = 'tinymce';
 
-  config: any;
+  config: {};
   loading: string;
 
   ngOnInit(): void {
