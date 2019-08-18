@@ -1,34 +1,52 @@
 import { TemplateRef } from '@angular/core';
-import { Observable } from 'rxjs';
-
+import { ACLCanType } from '@delon/acl';
 import { ErrorSchema } from '../errors';
-import { SFSchemaEnumType } from './index';
+
+export type SFPlacement =
+  | 'top'
+  | 'left'
+  | 'right'
+  | 'bottom'
+  | 'topLeft'
+  | 'topRight'
+  | 'bottomLeft'
+  | 'bottomRight'
+  | 'leftTop'
+  | 'leftBottom'
+  | 'rightTop'
+  | 'rightBottom';
+
+export type SFTrigger = 'click' | 'focus' | 'hover';
+
+export type SFLSSize = 'large' | 'small';
+
+export type SFDLSSize = 'default' | 'large' | 'small';
 
 export interface SFGridSizeSchema {
-  span?: number;
-  order?: number;
-  offset?: number;
-  push?: number;
-  pull?: number;
+  span?: number | null;
+  order?: number | null;
+  offset?: number | null;
+  push?: number | null;
+  pull?: number | null;
 }
 
 export interface SFGridSchema {
   /**
    * 栅格间隔
    */
-  gutter?: number;
+  gutter?: number | null;
   /**
    * 栅格占位格数，为 `0` 时相当于 `display: none`
    */
-  span?: number;
+  span?: number | null;
   /**
    * 数据栅格占位格数，为 `0` 时相当于 `display: none`
    */
-  arraySpan?: number;
+  arraySpan?: number | null;
   /**
    * 栅格左侧的间隔格数，间隔内不可以有栅格
    */
-  offset?: number;
+  offset?: number | null;
   xs?: number | SFGridSizeSchema;
   sm?: number | SFGridSizeSchema;
   md?: number | SFGridSizeSchema;
@@ -49,7 +67,7 @@ export interface SFRenderSchema {
   /**
    * 元素组件大小
    */
-  size?: 'default' | 'large' | 'small';
+  size?: SFDLSSize;
   /**
    * 指定宽度，单位：`px`
    */
@@ -58,10 +76,27 @@ export interface SFRenderSchema {
    * 响应式属性
    */
   grid?: SFGridSchema;
-  /** 标签可选信息 */
+  /**
+   * 标签可选信息
+   */
   optional?: string;
-  /** 标签可选帮助，使用 `nz-tooltip` 展示 */
-  optionalHelp?: string;
+  /**
+   * 标签可选帮助，使用 `nz-tooltip` 展示
+   */
+  optionalHelp?: string | SFOptionalHelp;
+}
+
+export interface SFOptionalHelp {
+  text?: string;
+  i18n?: string;
+  /** 图标，默认：`question-circle` */
+  icon?: string;
+  placement?: SFPlacement;
+  trigger?: SFTrigger;
+  mouseEnterDelay?: number;
+  mouseLeaveDelay?: number;
+  overlayClassName?: string;
+  overlayStyle?: { [key: string]: string };
 }
 
 export interface SFHorizontalLayoutSchema {
@@ -70,78 +105,41 @@ export interface SFHorizontalLayoutSchema {
    * - `0` 时相当于 `display: none`
    * - 限 `horizontal` 水平布局有效
    */
-  spanLabel?: number;
+  spanLabel?: number | null;
 
   /**
    * `control` 栅格占位格数，默认：`19`
    * - `0` 时相当于 `display: none`
    * - 限 `horizontal` 水平布局有效
    */
-  spanControl?: number;
+  spanControl?: number | null;
 
   /**
    * `control` 栅格左侧的间隔格数，间隔内不可以有栅格
    * - 限 `horizontal` 水平布局有效
    */
-  offsetControl?: number;
+  offsetControl?: number | null;
 
   /**
    * `label` 固定宽度
    * - 限 `horizontal` 水平布局有效
    */
-  spanLabelFixed?: number;
+  spanLabelFixed?: number | null;
 }
 
-export interface SFArraySchema {
-  /** **限array** 指定添加按钮文本，默认：添加 */
-  addTitle?: string;
-
-  /** **限array** 指定添加按钮风格，等同按钮 `nzType`，默认：dashed */
-  addType?: string;
-
-  /** **限array** 指定是否显示移除按钮 */
-  removable?: boolean;
-
-  /** **限array** 指定移除按钮文本，默认：移除 */
-  removeTitle?: string;
-
-  /** **限array** 指定是否显示排序按钮 */
-  // orderable?: boolean;
-}
-
-export interface SFInputSchema {
+export interface SFSchemaI18n {
   /**
-   * **限string** 指定 `input` 的 `type` 值，默认为：`text`
+   * 指 `schema.title` 的国际化键值
    */
-  type?: string;
+  i18n?: string;
   /**
-   * **限string** 文字框中显示提示信息
+   * 对应 `schema.description` 国际化
    */
-  placeholder?: string | string[];
-
-  /**
-   * **限string** 加载时是否获得焦点
-   */
-  autofocus?: boolean;
-}
-
-export interface SFDataSchema {
-  /**
-   * 异步静态数据源
-   * - `input` 可能根据不同部件的情况存在值，例如：`autocomplete` 表示当前键入的值
-   * - 参数、返回值：可能根据不同部件需求而定，具体参阅相应小部件独立说明
-   */
-  asyncData?: (input?: any) => Observable<SFSchemaEnumType[]>;
+  descriptionI18n?: string;
 }
 
 /** 指定如何渲染 `Schema` */
-export interface SFUISchemaItem
-  extends SFRenderSchema,
-    SFArraySchema,
-    SFHorizontalLayoutSchema,
-    SFDataSchema,
-    SFInputSchema,
-    ErrorSchema {
+export interface SFUISchemaItem extends SFRenderSchema, SFHorizontalLayoutSchema, ErrorSchema, SFSchemaI18n {
   [key: string]: any;
 
   /** 是否开启调试模式，在数据变更、校验会打印出相信信息，不建议在生产环境中使用 */
@@ -172,6 +170,11 @@ export interface SFUISchemaItem
    * - `visibleIf: { shown: (value: any) => value > 0 }`：复杂表达式
    */
   visibleIf?: { [key: string]: any[] | ((value: any) => boolean) };
+
+  /**
+   * ACL 配置
+   */
+  acl?: ACLCanType;
 }
 
 /**

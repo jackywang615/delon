@@ -35,7 +35,7 @@ function configToAngularJson(host: Tree, options: PluginOptions) {
 
 function envConfig(host: Tree, options: PluginOptions) {
   const defEnvPath = `${options.sourceRoot}/environments/environment.ts`;
-  const defContent = host.get(defEnvPath).content;
+  const defContent = host.get(defEnvPath)!.content;
   if (!host.exists(defEnvPath)) return;
   // 1. update default env file
   addValueToVariable(host, defEnvPath, 'environment', 'hmr: false');
@@ -53,21 +53,26 @@ function envConfig(host: Tree, options: PluginOptions) {
 }
 
 function addNodeTypeToTsconfig(host: Tree, options: PluginOptions) {
-  const tsConfigPath = `${options.sourceRoot}/tsconfig.app.json`;
-  if (!host.exists(tsConfigPath)) return;
+  const tsConfigPath = `${options.root}/tsconfig.app.json`;
+  if (!host.exists(tsConfigPath)) {
+    console.warn(`Not found ${tsConfigPath} file`);
+    return;
+  }
   const json = getJSON(host, tsConfigPath);
   const TYPENAME = 'node';
   if (options.type === 'add') {
     json.compilerOptions.types = [TYPENAME];
   } else {
     const idx = (json.compilerOptions.types as string[]).findIndex(w => w === TYPENAME);
-    if (idx !== -1) (json.compilerOptions.types as string[]).splice(idx, 1);
+    if (idx !== -1) {
+      (json.compilerOptions.types as string[]).splice(idx, 1);
+    }
   }
   overwriteJSON(host, tsConfigPath, json);
 }
 
 export function pluginHmr(options: PluginOptions): Rule {
-  return (host: Tree, context: SchematicContext) => {
+  return (host: Tree) => {
     // 1. add package
     (options.type === 'add' ? addPackageToPackageJson : removePackageFromPackageJson)(
       host,

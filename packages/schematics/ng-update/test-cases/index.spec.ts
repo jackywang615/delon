@@ -23,16 +23,12 @@ const bazelModuleSuffix = 'delon/packages/schematics/ng-update/test-cases';
  * Note that this means that there can be multiple tasks with the same name. The observable emits
  * only when all tasks finished executing.
  */
-export function runPostScheduledTasks(
-  runner: SchematicTestRunner,
-  taskName: string,
-): Observable<any> {
+export function runPostScheduledTasks(runner: SchematicTestRunner, taskName: string): Observable<any> {
   // Workaround until there is a public API to run scheduled tasks in the @angular-devkit.
   // See: https://github.com/angular/angular-cli/issues/11739
   const host = runner.engine['_host'] as EngineHost<{}, {}>;
   const tasks = runner.engine['_taskSchedulers'] as TaskScheduler[];
-  const createTaskExecutor = (name: string) =>
-    (host.createTaskExecutor(name) as any) as Observable<TaskExecutor<any>>;
+  const createTaskExecutor = (name: string) => (host.createTaskExecutor(name) as any) as Observable<TaskExecutor<any>>;
 
   return observableFrom(tasks).pipe(
     concatMap(scheduler => scheduler.finalize()),
@@ -48,19 +44,20 @@ export function runPostScheduledTasks(
   );
 }
 
-export function createTestApp(runner: SchematicTestRunner, appOptions = {}): UnitTestTree {
-  const workspaceTree = runner.runExternalSchematic('@schematics/angular', 'workspace', {
+export async function createTestApp(runner: SchematicTestRunner, appOptions = {}): Promise<UnitTestTree> {
+  const workspaceTree = await runner.runExternalSchematicAsync('@schematics/angular', 'workspace', {
     name: 'workspace',
     version: '6.0.0',
     newProjectRoot: 'projects',
-  });
+  }).toPromise();
 
-  return runner.runExternalSchematic(
+  const res = await runner.runExternalSchematicAsync(
     '@schematics/angular',
     'application',
     { ...appOptions, name: 'ng-alain' },
     workspaceTree,
-  );
+  ).toPromise();
+  return res;
 }
 
 /** Reads the UTF8 content of the specified file. Normalizes the path and ensures that */
@@ -86,20 +83,20 @@ export function resolveBazelDataFile(filePath: string) {
  * Creates a test app schematic tree that will be copied over to a real filesystem location.
  * This is necessary because TSLint is not able to read from the virtual filesystem tree.
  */
-export function createFileSystemTestApp(runner: SchematicTestRunner) {
+export async function createFileSystemTestApp(runner: SchematicTestRunner): Promise<{ tree: UnitTestTree, tempPath: string }> {
   const tempFileSystemHost = new TempScopedNodeJsSyncHost();
-  const appTree = createTestApp(runner);
+  const tree = await createTestApp(runner);
   const tempPath = getSystemPath(tempFileSystemHost.root);
 
   // Since the TSLint fix task expects all files to be present on the real file system, we
   // map every file in the app tree to a temporary location on the file system.
-  appTree.files
+  tree.files
     .map(f => normalize(f))
     .forEach(f => {
-      tempFileSystemHost.sync.write(f, virtualFs.stringToFileBuffer(appTree.readContent(f)));
+      tempFileSystemHost.sync.write(f, virtualFs.stringToFileBuffer(tree.readContent(f)));
     });
 
-  return { appTree, tempPath };
+  return { tree, tempPath };
 }
 
 export async function runTestCases(migrationName: string, inputs: { [name: string]: string }) {
@@ -110,7 +107,7 @@ export async function runTestCases(migrationName: string, inputs: { [name: strin
   let logOutput = '';
   runner.logger.subscribe(entry => (logOutput += entry.message));
 
-  const { appTree, tempPath } = createFileSystemTestApp(runner);
+  const { tree, tempPath } = await createFileSystemTestApp(runner);
 
   // Write each test-case input to the file-system. This is necessary because otherwise
   // TSLint won't be able to pick up the test cases.
@@ -122,10 +119,10 @@ export async function runTestCases(migrationName: string, inputs: { [name: strin
     writeFileSync(tempInputPath, readFileContent(inputs[inputName]));
 
     // TODO: add to tree
-    appTree.create(inputFullName, readFileContent(inputs[inputName]));
+    tree.create(inputFullName, readFileContent(inputs[inputName]));
   });
 
-  runner.runSchematic(migrationName, {}, appTree);
+  await runner.runSchematicAsync(migrationName, {}, tree).toPromise();
 
   // Switch to the new temporary directory because otherwise TSLint cannot read the files.
   process.chdir(tempPath);
@@ -138,5 +135,5 @@ export async function runTestCases(migrationName: string, inputs: { [name: strin
   // Switch back to the initial working directory.
   process.chdir(initialWorkingDir);
 
-  return { tempPath, logOutput, appTree };
+  return { tempPath, logOutput, appTree: tree };
 }

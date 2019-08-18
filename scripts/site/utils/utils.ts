@@ -7,9 +7,7 @@ import * as fse from 'fs-extra';
 import { ModuleConfig } from '../interfaces';
 
 export function isHeading(node: any) {
-  return /h[1-6]/i.test(
-    typeof node === 'string' ? node : JsonML.getTagName(node),
-  );
+  return /h[1-6]/i.test(typeof node === 'string' ? node : JsonML.getTagName(node));
 }
 
 export function isStandalone(tagName: string) {
@@ -22,7 +20,7 @@ export function escapeHTML(str: string, escapeQuotes: boolean = false) {
   }
 
   let escaped = str
-    .replace(/&/g, '&amp;')
+    // .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
@@ -80,11 +78,7 @@ export function genUpperName(name: string) {
 }
 
 export function includeAttributes(config: ModuleConfig, targetMeta: any) {
-  if (
-    !config.metaIncludeAttributes ||
-    !Array.isArray(config.metaIncludeAttributes)
-  )
-    return;
+  if (!config.metaIncludeAttributes || !Array.isArray(config.metaIncludeAttributes)) return;
 
   targetMeta = targetMeta || {};
   for (const key of config.metaIncludeAttributes) {
@@ -101,6 +95,6 @@ export function genComponentName(...names) {
   return `${names.map(key => genUpperName(key)).join('')}Component`;
 }
 
-export function genSelector(...names) {
+export function genSelector(...names: string[]) {
   return `app-${names.join('-')}`;
 }

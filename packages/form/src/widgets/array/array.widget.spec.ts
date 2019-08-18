@@ -4,6 +4,7 @@ import { createTestContext } from '@delon/testing';
 import { deepCopy } from '@delon/util';
 import { configureSFTestSuite, SFPage, TestFormComponent } from '../../../spec/base.spec';
 import { SFSchema } from '../../../src/schema/index';
+import { ArrayProperty, FormProperty } from '../../model';
 
 describe('form: widget: array', () => {
   let fixture: ComponentFixture<TestFormComponent>;
@@ -63,7 +64,7 @@ describe('form: widget: array', () => {
   describe('#removable', () => {
     it('with true', () => {
       const s = deepCopy(schema) as SFSchema;
-      s.properties.arr.ui = { removable: true };
+      s.properties!.arr.ui = { removable: true };
       page
         .newSchema(s)
         .checkCount('.sf-array-item', 0)
@@ -74,13 +75,26 @@ describe('form: widget: array', () => {
     });
     it('with false', () => {
       const s = deepCopy(schema) as SFSchema;
-      s.properties.arr.ui = { removable: false };
+      s.properties!.arr.ui = { removable: false };
       page
         .newSchema(s)
         .checkCount('.sf-array-item', 0)
         .add()
         .checkCount('.sf-array-item', 1)
-        .checkCount(`.sf__array-container [data-index="0"] .remove`, 0);
+        .checkCount(`.sf__array-container [data-index="0"] .sf__array-remove`, 0);
+    });
+  });
+  describe('#disabled or #readOnly', () => {
+    let s: SFSchema;
+    beforeEach(() => {
+      s = deepCopy(schema);
+      s.properties!.arr.readOnly = true;
+    });
+    it('should be disabled add button', () => {
+      page.newSchema(s).checkCount('.sf__array-add button[disabled]', 1);
+    });
+    it('should be disabled all item remove button', () => {
+      page.newSchema(s, {}, { arr: [{}] }).checkCount('.sf__array-remove', 0);
     });
   });
   describe('#default data', () => {
@@ -94,13 +108,13 @@ describe('form: widget: array', () => {
     it('via default in schema', () => {
       const data = [{ a: 'a1' }, { a: 'a2' }];
       const s = deepCopy(schema) as SFSchema;
-      s.properties.arr.default = data;
+      s.properties!.arr.default = data;
       page.newSchema(s).checkCount('.sf-array-item', data.length);
     });
     it('should be keeping default value in reset action', () => {
       const data = [{ a: 'a1' }, { a: 'a2' }];
       const s = deepCopy(schema) as SFSchema;
-      s.properties.arr.default = data;
+      s.properties!.arr.default = data;
       page
         .newSchema(s)
         .checkCount('.sf-array-item', data.length)
@@ -108,6 +122,40 @@ describe('form: widget: array', () => {
         .checkCount('.sf-array-item', data.length + 1)
         .reset()
         .checkCount('.sf-array-item', data.length);
+    });
+  });
+  describe('#paths', () => {
+    function getPaths(): string[] {
+      const properties = (page.getProperty('/arr') as ArrayProperty).properties as FormProperty[];
+      return properties.map(p => p.path);
+    }
+    it('should be reset path subscript when remove item', () => {
+      page
+        .newSchema(deepCopy(schema))
+        .add()
+        .add();
+      expect(getPaths().length).toBe(2);
+      expect(getPaths()[0]).toBe('/arr/0');
+      expect(getPaths()[1]).toBe('/arr/1');
+      page.remove();
+      expect(getPaths().length).toBe(1);
+      expect(getPaths()[0]).toBe('/arr/0');
+    });
+    it('should always start from 0', () => {
+      page
+        .newSchema(deepCopy(schema))
+        .add()
+        .add();
+      expect(getPaths().length).toBe(2);
+      expect(getPaths()[0]).toBe('/arr/0');
+      expect(getPaths()[1]).toBe('/arr/1');
+      page.reset().add();
+      expect(getPaths().length).toBe(1);
+      expect(getPaths()[0]).toBe('/arr/0');
+    });
+    it('should be return undefined when invalid path subscript', () => {
+      page.newSchema(deepCopy(schema)).add();
+      expect(page.getProperty('/arr/10/a')).toBeUndefined();
     });
   });
 });

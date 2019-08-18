@@ -12,9 +12,9 @@ export type SocialOpenType = 'href' | 'window';
 
 @Injectable()
 export class SocialService implements OnDestroy {
-  private _win: Window;
-  private _winTime;
-  private observer: Observer<ITokenModel>;
+  private _win: Window | null;
+  private _winTime: any;
+  private observer: Observer<ITokenModel | null>;
 
   constructor(
     @Inject(DA_SERVICE_TOKEN) private tokenService: ITokenService,
@@ -64,13 +64,13 @@ export class SocialService implements OnDestroy {
       type?: SocialOpenType;
       windowFeatures?: string;
     } = {},
-  ): Observable<ITokenModel> | void {
+  ): Observable<ITokenModel | null> | void {
     options = {
       type: 'window',
       windowFeatures: 'location=yes,height=570,width=520,scrollbars=yes,status=yes',
       ...options,
     };
-    localStorage.setItem(OPENTYPE, options.type);
+    localStorage.setItem(OPENTYPE, options.type!);
     localStorage.setItem(HREFCALLBACK, callback);
     if (options.type === 'href') {
       this.doc.location.href = url;
@@ -94,7 +94,7 @@ export class SocialService implements OnDestroy {
         this.observer.complete();
       }
     }, 100);
-    return Observable.create((observer: Observer<ITokenModel>) => {
+    return new Observable((observer: Observer<ITokenModel | null>) => {
       this.observer = observer;
     });
   }
@@ -104,7 +104,7 @@ export class SocialService implements OnDestroy {
    *
    * @param rawData 指定回调认证信息，为空时从根据当前URL解析
    */
-  callback(rawData?: string | ITokenModel): ITokenModel {
+  callback(rawData?: ITokenModel | string | null): ITokenModel {
     // from uri
     if (!rawData && this.router.url.indexOf('?') === -1) {
       throw new Error(`url muse contain a ?`);
@@ -115,7 +115,7 @@ export class SocialService implements OnDestroy {
       const rightUrl = rawData.split('?')[1].split('#')[0];
       data = this.router.parseUrl('./?' + rightUrl).queryParams as ITokenModel;
     } else {
-      data = rawData;
+      data = rawData as ITokenModel;
     }
 
     if (!data || !data.token) throw new Error(`invalide token data`);

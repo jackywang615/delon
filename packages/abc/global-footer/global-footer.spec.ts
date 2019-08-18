@@ -1,6 +1,6 @@
 import { APP_BASE_HREF } from '@angular/common';
-import { Component, CUSTOM_ELEMENTS_SCHEMA, DebugElement, Injector } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, DebugElement } from '@angular/core';
+import { ComponentFixture, TestBed, TestBedStatic } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { WINDOW } from '@delon/theme';
 
@@ -10,8 +10,8 @@ import { GlobalFooterModule } from './global-footer.module';
 import { GlobalFooterLink } from './global-footer.types';
 
 class MockWindow {
-  open() {}
   location = new MockLocation();
+  open() {}
 }
 class MockLocation {
   private url: string;
@@ -24,7 +24,7 @@ class MockLocation {
 }
 
 describe('abc: global-footer', () => {
-  let injector: Injector;
+  let injector: TestBedStatic;
   let fixture: ComponentFixture<TestComponent>;
   let dl: DebugElement;
   let context: TestComponent;
@@ -35,10 +35,7 @@ describe('abc: global-footer', () => {
       imports: [RouterTestingModule.withRoutes([]), GlobalFooterModule],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
       declarations: [TestComponent],
-      providers: [
-        { provide: APP_BASE_HREF, useValue: '/' },
-        { provide: WINDOW, useFactory: () => new MockWindow() },
-      ],
+      providers: [{ provide: APP_BASE_HREF, useValue: '/' }, { provide: WINDOW, useFactory: () => new MockWindow() }],
     });
   });
 
@@ -107,7 +104,7 @@ describe('abc: global-footer', () => {
 
   it('should be navigate router', () => {
     createComp();
-    const router = injector.get(Router);
+    const router = injector.get<Router>(Router);
     spyOn(router, 'navigateByUrl');
     context.links = [
       {
@@ -122,7 +119,7 @@ describe('abc: global-footer', () => {
 
   it('should be ingore navigate when href is empty', () => {
     createComp();
-    const router = injector.get(Router);
+    const router = injector.get<Router>(Router);
     spyOn(router, 'navigateByUrl');
     context.links = [
       {

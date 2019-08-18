@@ -64,7 +64,7 @@ describe('chart: timeline', () => {
   `,
 })
 class TestComponent {
-  @ViewChild('comp') comp: G2TimelineComponent;
+  @ViewChild('comp', { static: true }) comp: G2TimelineComponent;
   title = 'title';
   titleMap = { y1: '客流量', y2: '支付笔数' };
   colorMap = { y1: '#1890FF', y2: '#2FC25B' };
@@ -72,7 +72,7 @@ class TestComponent {
   position: 'top' | 'right' | 'bottom' | 'left' = 'top';
   borderWidth = 2;
   slider = true;
-  data: G2TimelineData[] = new Array(9).fill({}).map((v, i) => ({
+  data: G2TimelineData[] = new Array(9).fill({}).map((_v, i) => ({
     x: new Date().getTime() + 1000 * 60 * 30 * i,
     y1: Math.floor(Math.random() * 100) + 1000,
     y2: Math.floor(Math.random() * 100) + 10,

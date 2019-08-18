@@ -1,8 +1,10 @@
 import { deepCopy, toBoolean } from '@delon/util';
 import { of, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { NzI18nService } from 'ng-zorro-antd/i18n';
 import { SFSchema, SFSchemaDefinition, SFSchemaEnum } from './schema';
 import { SFUISchema, SFUISchemaItem, SFUISchemaItemRun } from './schema/ui';
+import { SF_SEQ } from './const';
 
 export const FORMATMAPS = {
   'date-time': {
@@ -43,10 +45,10 @@ function findSchemaDefinition($ref: string, definitions: SFSchemaDefinition) {
   const match = /^#\/definitions\/(.*)$/.exec($ref);
   if (match && match[1]) {
     // parser JSON Pointer
-    const parts = match[1].split('/');
+    const parts = match[1].split(SF_SEQ);
     let current: any = definitions;
     for (let part of parts) {
-      part = part.replace(/~1/g, '/').replace(/~0/g, '~');
+      part = part.replace(/~1/g, SF_SEQ).replace(/~0/g, '~');
       if (current.hasOwnProperty(part)) {
         current = current[part];
       } else {
@@ -63,7 +65,7 @@ function findSchemaDefinition($ref: string, definitions: SFSchemaDefinition) {
  */
 export function retrieveSchema(schema: SFSchema, definitions: SFSchemaDefinition = {}): SFSchema {
   if (schema.hasOwnProperty('$ref')) {
-    const $refSchema = findSchemaDefinition(schema.$ref, definitions);
+    const $refSchema = findSchemaDefinition(schema.$ref!, definitions);
     // remove $ref property
     const { $ref, ...localSchema } = schema;
     return retrieveSchema({ ...$refSchema, ...localSchema }, definitions);
@@ -72,32 +74,32 @@ export function retrieveSchema(schema: SFSchema, definitions: SFSchemaDefinition
   return schema;
 }
 
-export function resolveIf(schema: SFSchema, ui: SFUISchemaItemRun): SFSchema {
-  if (!(schema.hasOwnProperty('if') && schema.hasOwnProperty('then'))) return;
+export function resolveIf(schema: SFSchema, ui: SFUISchemaItemRun): SFSchema | null {
+  if (!(schema.hasOwnProperty('if') && schema.hasOwnProperty('then'))) return null;
 
-  if (!schema.if.properties) throw new Error(`if: does not contain 'properties'`);
+  if (!schema.if!.properties) throw new Error(`if: does not contain 'properties'`);
 
-  const allKeys = Object.keys(schema.properties);
-  const ifKeys = Object.keys(schema.if.properties);
+  const allKeys = Object.keys(schema.properties!);
+  const ifKeys = Object.keys(schema.if!.properties!);
   detectKey(allKeys, ifKeys);
-  detectKey(allKeys, schema.then.required);
-  schema.required = schema.required.concat(schema.then.required);
+  detectKey(allKeys, schema.then!.required!);
+  schema.required = schema.required!.concat(schema.then!.required!);
   const hasElse = schema.hasOwnProperty('else');
   if (hasElse) {
-    detectKey(allKeys, schema.else.required);
-    schema.required = schema.required.concat(schema.else.required);
+    detectKey(allKeys, schema.else!.required!);
+    schema.required = schema.required.concat(schema.else!.required!);
   }
 
   const visibleIf: any = {};
   const visibleElse: any = {};
   ifKeys.forEach(key => {
-    const cond = schema.if.properties[key].enum;
+    const cond = schema.if!.properties![key].enum;
     visibleIf[key] = cond;
-    if (hasElse) visibleElse[key] = (value: any) => !cond.includes(value);
+    if (hasElse) visibleElse[key] = (value: any) => !cond!.includes(value);
   });
 
-  schema.then.required.forEach(key => (ui[`$${key}`].visibleIf = visibleIf));
-  if (hasElse) schema.else.required.forEach(key => (ui[`$${key}`].visibleIf = visibleElse));
+  schema.then!.required!.forEach(key => (ui[`$${key}`].visibleIf = visibleIf));
+  if (hasElse) schema.else!.required!.forEach(key => (ui[`$${key}`].visibleIf = visibleElse));
 
   return schema;
 }
@@ -165,14 +167,19 @@ export function getCopyEnum(list: any[], formData: any, readOnly: boolean) {
   return getEnum(deepCopy(list || []), formData, readOnly);
 }
 
-export function getData(
-  schema: SFSchema,
-  ui: SFUISchemaItem,
-  formData: any,
-  asyncArgs?: any,
-): Observable<SFSchemaEnum[]> {
+export function getData(schema: SFSchema, ui: SFUISchemaItem, formData: any, asyncArgs?: any): Observable<SFSchemaEnum[]> {
   if (typeof ui.asyncData === 'function') {
-    return ui.asyncData(asyncArgs).pipe(map(list => getEnum(list, formData, schema.readOnly)));
+    return ui.asyncData(asyncArgs).pipe(map((list: SFSchemaEnum[]) => getEnum(list, formData, schema.readOnly!)));
   }
-  return of(getCopyEnum(schema.enum, formData, schema.readOnly));
+  return of(getCopyEnum(schema.enum!, formData, schema.readOnly!));
+}
+
+/**
+ * Whether to using date-fns to format a date
+ */
+export function isDateFns(srv: NzI18nService): boolean {
+  if (!srv) return false;
+  const data = srv.getDateLocale();
+  // Compatible date-fns v1.x & v2.x
+  return data != null && (!!data.distanceInWords || !!data.formatDistance);
 }

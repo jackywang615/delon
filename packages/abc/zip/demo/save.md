@@ -15,7 +15,7 @@ import * as JSZip from 'jszip';
   selector: 'app-demo',
   template: `
   <div *ngIf="instance">
-    <button nz-button (click)="data.push({})" [nzType]="'primary'">new</button>
+    <button nz-button (click)="add()" [nzType]="'primary'">new</button>
     <button nz-button (click)="download()" class="ml-sm">download</button>
     <nz-table [nzData]="data" [nzFrontPagination]="false" [nzShowPagination]="false" class="mt-sm">
       <thead>
@@ -35,8 +35,7 @@ import * as JSZip from 'jszip';
   `
 })
 export class DemoComponent {
-
-  instance: JSZip = null;
+  instance: JSZip | null = null;
   data: { path: string, url: string }[] = [
     { path: 'demo.docx', url: 'https://ng-alain.com/assets/demo.docx' },
     { path: 'img/zorro.svg', url: 'https://ng.ant.design/assets/img/zorro.svg' },
@@ -47,6 +46,10 @@ export class DemoComponent {
     this.zip.create().then(ret => this.instance = ret);
   }
 
+  add() {
+    this.data.push({ path: '', url: '' });
+  }
+  
   download() {
     const promises: Promise<any>[] = [];
     this.data.forEach(item => {

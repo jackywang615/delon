@@ -1,11 +1,12 @@
 import { DebugElement } from '@angular/core';
-import { ComponentFixture } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, discardPeriodicTasks } from '@angular/core/testing';
 import { createTestContext } from '@delon/testing';
 import { deepCopy } from '@delon/util';
 import { ObjectProperty } from '../src/model/object.property';
 import { SFSchema } from '../src/schema/index';
 import { SFUISchema, SFUISchemaItem } from '../src/schema/ui';
 import { configureSFTestSuite, SFPage, TestFormComponent } from './base.spec';
+import { NzToolTipComponent } from 'ng-zorro-antd';
 
 describe('form: schema', () => {
   let fixture: ComponentFixture<TestFormComponent>;
@@ -117,7 +118,7 @@ describe('form: schema', () => {
       fixture.detectChanges();
       page.checkUI('/name', 'spanLabel', null);
     });
-    it('should call refreshSchema changed schema', () => {
+    it('should call refreshSchema changed schema', fakeAsync(() => {
       context.comp.refreshSchema(
         {
           properties: {
@@ -135,7 +136,8 @@ describe('form: schema', () => {
       page.checkUI('/user/name', 'spanLabelFixed', 100);
       page.checkUI('/user/name', 'spanControl', 10);
       page.checkUI('/user/name', 'offsetControl', 11);
-    });
+      discardPeriodicTasks();
+    }));
     it('support ui is null', () => {
       expect(() => {
         context.ui = null;
@@ -160,8 +162,8 @@ describe('form: schema', () => {
       describe('[#via in json schema]', () => {
         it('should be has $items when is array', () => {
           const schema = deepCopy(arrSchema) as SFSchema;
-          schema.properties.name.ui = deepCopy(arrUI);
-          page.newSchema(schema).checkUI('/name', 'grid.arraySpan', arrUI.grid.arraySpan);
+          schema.properties!.name.ui = deepCopy(arrUI);
+          page.newSchema(schema).checkUI('/name', 'grid.arraySpan', arrUI.grid!.arraySpan);
         });
       });
       describe('[#via ui property]', () => {
@@ -173,9 +175,51 @@ describe('form: schema', () => {
               ...deepCopy(arrUI),
             },
           };
-          page.newSchema(schema, uiSchema).checkUI('/name', 'grid.arraySpan', arrUI.grid.arraySpan);
+          page.newSchema(schema, uiSchema).checkUI('/name', 'grid.arraySpan', arrUI.grid!.arraySpan);
         });
       });
+    });
+    describe('#optionalHelp', () => {
+      it('should working when value is string', fakeAsync(() => {
+        context.comp.refreshSchema({
+          properties: {
+            name: { type: 'string', ui: { optionalHelp: 'a' } },
+          },
+        });
+        page.checkCount('.sf__optional nz-tooltip', 1);
+        discardPeriodicTasks();
+      }));
+      it('should working when value is object', fakeAsync(() => {
+        context.comp.refreshSchema({
+          properties: {
+            name: { type: 'string', ui: { optionalHelp: { text: 'b', placement: 'bottomRight' } } },
+          },
+        });
+        page.checkCount('.sf__optional nz-tooltip', 1);
+        discardPeriodicTasks();
+      }));
+      it('should be hide when not text value in object', fakeAsync(() => {
+        context.comp.refreshSchema({
+          properties: {
+            name: { type: 'string', ui: { optionalHelp: { text: '', placement: 'bottomRight' } } },
+          },
+        });
+        page.checkCount('.sf__optional nz-tooltip', 0);
+        discardPeriodicTasks();
+      }));
+      it('should be inherit the root config', fakeAsync(() => {
+        context.comp.refreshSchema(
+          {
+            properties: {
+              name: { type: 'string', ui: { optionalHelp: { text: 'a' } } },
+            },
+          },
+          { '*': { optionalHelp: { text: '', placement: 'bottomRight' } } },
+        );
+        const a = page.getWidget<NzToolTipComponent>('nz-tooltip');
+        expect(a.nzPlacement).toBe(`bottomRight`);
+        discardPeriodicTasks();
+      }));
     });
   });
 
@@ -349,7 +393,7 @@ describe('form: schema', () => {
 
   describe('[order]', () => {
     function genKeys() {
-      return JSON.stringify(Object.keys((context.comp.rootProperty as ObjectProperty).properties));
+      return JSON.stringify(Object.keys((context.comp.rootProperty as ObjectProperty).properties!));
     }
 
     function checkOrderKeys(arr: string[]) {

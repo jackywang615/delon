@@ -7,6 +7,7 @@ import {
   OnInit,
   ViewChild,
   ViewContainerRef,
+  ViewEncapsulation,
 } from '@angular/core';
 import { Subject } from 'rxjs';
 import { FormProperty } from './model/form.property';
@@ -19,23 +20,26 @@ let nextUniqueId = 0;
 
 @Component({
   selector: 'sf-item',
+  exportAs: 'sfItem',
   template: `
     <ng-template #target></ng-template>
   `,
+  preserveWhitespaces: false,
+  encapsulation: ViewEncapsulation.None,
 })
 export class SFItemComponent implements OnInit, OnChanges, OnDestroy {
-  private ref: ComponentRef<Widget<FormProperty>>;
+  private ref: ComponentRef<Widget<FormProperty, SFUISchemaItem>>;
   readonly unsubscribe$ = new Subject<void>();
-  widget: Widget<FormProperty> = null;
+  widget: Widget<FormProperty, SFUISchemaItem> | null = null;
 
   @Input() formProperty: FormProperty;
 
-  @ViewChild('target', { read: ViewContainerRef })
+  @ViewChild('target', { read: ViewContainerRef, static: true })
   container: ViewContainerRef;
 
   constructor(private widgetFactory: WidgetFactory, private terminator: TerminatorService) {}
 
-  onWidgetInstanciated(widget: Widget<FormProperty>) {
+  onWidgetInstanciated(widget: Widget<FormProperty, SFUISchemaItem>) {
     this.widget = widget;
     const id = `_sf-${nextUniqueId++}`;
 
@@ -44,7 +48,7 @@ export class SFItemComponent implements OnInit, OnChanges, OnDestroy {
     this.widget.schema = this.formProperty.schema;
     this.widget.ui = ui;
     this.widget.id = id;
-    this.widget.firstVisual = ui.firstVisual;
+    this.widget.firstVisual = ui.firstVisual as boolean;
     this.formProperty.widget = widget;
   }
 
@@ -53,8 +57,7 @@ export class SFItemComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(): void {
-    this.ref = this.widgetFactory.createWidget(this.container, (this.formProperty.ui.widget ||
-      this.formProperty.schema.type) as string);
+    this.ref = this.widgetFactory.createWidget(this.container, (this.formProperty.ui.widget || this.formProperty.schema.type) as string);
     this.onWidgetInstanciated(this.ref.instance);
   }
 

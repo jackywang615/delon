@@ -1,5 +1,4 @@
-import { Injector } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, TestBedStatic } from '@angular/core/testing';
 
 import { concat } from 'rxjs';
 import { filter, flatMap, tap } from 'rxjs/operators';
@@ -25,27 +24,24 @@ class MockLazyService {
     ++loadCount;
     if (isErrRequest) return Promise.resolve({ status: 'error' });
 
-    window[cog.name] = isNullLodop ? null : mockLodop;
+    window[cog.name!] = isNullLodop ? null : mockLodop;
     return Promise.resolve({ status: 'ok' });
   }
 }
 
 describe('abc: lodop', () => {
-  let injector: Injector;
+  let injector: TestBedStatic;
   let srv: LodopService;
 
   function fnLodopConfig(): LodopConfig {
     return cog;
   }
-  function genModule(options?: LodopConfig) {
+  function genModule() {
     injector = TestBed.configureTestingModule({
       imports: [LodopModule],
-      providers: [
-        { provide: LazyService, useClass: MockLazyService },
-        { provide: LodopConfig, useFactory: fnLodopConfig },
-      ],
+      providers: [{ provide: LazyService, useClass: MockLazyService }, { provide: LodopConfig, useFactory: fnLodopConfig }],
     });
-    srv = injector.get(LodopService);
+    srv = injector.get<LodopService>(LodopService);
     isErrRequest = false;
     loadCount = 0;
     isNullLodop = false;
@@ -61,7 +57,7 @@ describe('abc: lodop', () => {
 
   describe('[default]', () => {
     it('should get lodop instance', (done: () => void) => {
-      genModule(cog);
+      genModule();
       srv.lodop.subscribe(res => {
         expect(res).not.toBeNull();
         expect(true).toBe(true);
@@ -69,7 +65,7 @@ describe('abc: lodop', () => {
       });
     });
     it('should throw err when can not get variable name', (done: () => void) => {
-      genModule(cog);
+      genModule();
       isNullLodop = true;
       srv.lodop.subscribe(res => {
         expect(res.status).toBe('load-variable-name-error');
@@ -77,7 +73,7 @@ describe('abc: lodop', () => {
       });
     });
     it('should wait for websocket completed', (done: () => void) => {
-      genModule(cog);
+      genModule();
       mockLodop = {
         SET_LICENSES: jasmine.createSpy('SET_LICENSES'),
         webskt: {
@@ -85,7 +81,7 @@ describe('abc: lodop', () => {
         },
       };
       setTimeout(() => {
-        const obj = window[cog.name] as Lodop;
+        const obj = window[cog.name!] as Lodop;
         (obj.webskt as any).readyState = 1;
       }, 30);
       srv.lodop.subscribe(res => {
@@ -95,7 +91,7 @@ describe('abc: lodop', () => {
       });
     });
     it('should be multi get', (done: () => void) => {
-      genModule(cog);
+      genModule();
       concat(srv.lodop, srv.lodop).subscribe(
         () => {
           expect(loadCount).toBe(1);
@@ -110,7 +106,7 @@ describe('abc: lodop', () => {
     });
     it('#checkMaxCount', (done: () => void) => {
       cog.checkMaxCount = 2;
-      genModule(cog);
+      genModule();
       mockLodop = {
         SET_LICENSES: jasmine.createSpy('SET_LICENSES'),
         webskt: {
@@ -123,8 +119,8 @@ describe('abc: lodop', () => {
       });
     });
     it('should get exists lodop', (done: () => void) => {
-      genModule(cog);
-      srv.lodop.subscribe(res1 => {
+      genModule();
+      srv.lodop.subscribe(() => {
         srv.lodop.subscribe(res => {
           expect(res).not.toBeNull();
           expect(true).toBe(true);
@@ -133,8 +129,8 @@ describe('abc: lodop', () => {
       });
     });
     it('should get printer list', (done: () => void) => {
-      genModule(cog);
-      srv.lodop.subscribe(({ lodop }) => {
+      genModule();
+      srv.lodop.subscribe(() => {
         expect(srv.printer.length).toBe(1);
         srv.ngOnDestroy();
         done();
@@ -142,12 +138,13 @@ describe('abc: lodop', () => {
     });
     it('should throw error when lodop is null', () => {
       expect(() => {
-        genModule(cog);
+        genModule();
         const ls = srv.printer;
+        console.log(ls);
       }).toThrowError('请务必先调用 lodop 获取对象');
     });
     it('should throw error when http request error', (done: () => void) => {
-      genModule(cog);
+      genModule();
       isErrRequest = true;
       srv.lodop.subscribe(res => {
         expect(res.status).toBe('script-load-error');
@@ -155,7 +152,7 @@ describe('abc: lodop', () => {
       });
     });
     it('#reset', (done: () => void) => {
-      genModule(cog);
+      genModule();
       srv.lodop.subscribe(res => {
         expect(res).not.toBeNull();
         expect(true).toBe(true);
@@ -167,7 +164,7 @@ describe('abc: lodop', () => {
 
   describe('#attachCode', () => {
     it('should be attach to lodop', (done: () => void) => {
-      genModule(cog);
+      genModule();
       const code = `
             LODOP.PRINT_INITA(10, 10, 762, 533, 'title');
 
@@ -181,7 +178,7 @@ describe('abc: lodop', () => {
         },
       };
 
-      srv.lodop.subscribe(res => {
+      srv.lodop.subscribe(() => {
         expect(mockLodop.PRINT_INITA).not.toHaveBeenCalled();
         srv.attachCode(code);
         expect(mockLodop.PRINT_INITA).toHaveBeenCalled();
@@ -189,7 +186,7 @@ describe('abc: lodop', () => {
       });
     });
     it('should be custom parser', (done: () => void) => {
-      genModule(cog);
+      genModule();
       const code = `
             LODOP.PRINT_INITA(10, 10, 762, 533, '{{title}}');
             LODOP.SET_PRINT_STYLEA(0, 'FontName', '{{fs}}');
@@ -200,6 +197,7 @@ describe('abc: lodop', () => {
       mockLodop = {
         SET_LICENSES: jasmine.createSpy('SET_LICENSES'),
         SET_PRINT_STYLEA: jasmine.createSpy('SET_PRINT_STYLEA'),
+        // tslint:disable-next-line: only-arrow-functions
         PRINT_INITA: jasmine.createSpy('PRINT_INITA').and.callFake(function() {
           mockRes = arguments[4];
         }),
@@ -208,7 +206,7 @@ describe('abc: lodop', () => {
         },
       };
 
-      srv.lodop.subscribe(res => {
+      srv.lodop.subscribe(() => {
         expect(mockLodop.PRINT_INITA).not.toHaveBeenCalled();
         srv.attachCode(code, contextData, /LODOP\.([^(]+)\(([^\n]+)\);/i);
         expect(mockLodop.PRINT_INITA).toHaveBeenCalled();
@@ -219,7 +217,7 @@ describe('abc: lodop', () => {
   });
 
   it('#design', (done: () => void) => {
-    genModule(cog);
+    genModule();
     const code = `
         LODOP.PRINT_INITA(10, 10, 762, 533, '{{title}}');
         LODOP.xxx(10, 10, 762, 533, '{{title2}}');
@@ -238,7 +236,7 @@ describe('abc: lodop', () => {
       },
     };
 
-    srv.lodop.subscribe(res => {
+    srv.lodop.subscribe(() => {
       expect(mockLodop.PRINT_DESIGN).not.toHaveBeenCalled();
       srv.design().then(returnCode => {
         expect(returnCode).toBe(code);
@@ -253,7 +251,7 @@ describe('abc: lodop', () => {
     let isPrintError = false;
     beforeEach(() => {
       isPrintError = false;
-      genModule(cog);
+      genModule();
       mockLodop = {
         SET_LICENSES: jasmine.createSpy('SET_LICENSES'),
         PRINT_INITA: jasmine.createSpy('PRINT_INITA'),
@@ -279,10 +277,10 @@ describe('abc: lodop', () => {
         .pipe(
           filter(w => w.ok),
           tap(() => srv.print(code, {})),
-          flatMap(a => srv.events),
+          flatMap(() => srv.events),
           filter(w => w.ok),
         )
-        .subscribe(res => {
+        .subscribe(() => {
           expect(mockLodop.PRINT).toHaveBeenCalled();
           done();
         });
@@ -292,10 +290,10 @@ describe('abc: lodop', () => {
         .pipe(
           filter(w => w.ok),
           tap(() => srv.print(code, [{ index: 0 }, { index: 1 }])),
-          flatMap(a => srv.events),
+          flatMap(() => srv.events),
           filter(w => w.ok && w.item.index === 1),
         )
-        .subscribe(res => {
+        .subscribe(() => {
           expect(mockLodop.PRINT).toHaveBeenCalled();
           done();
         });
@@ -304,9 +302,9 @@ describe('abc: lodop', () => {
       srv.lodop
         .pipe(
           filter(w => w.ok),
-          tap(() => srv.print(code, null)),
+          tap(() => srv.print(code, null!)),
         )
-        .subscribe(res => {
+        .subscribe(() => {
           expect(mockLodop.PRINT).not.toHaveBeenCalled();
           done();
         });
@@ -319,7 +317,7 @@ describe('abc: lodop', () => {
             isPrintError = true;
             srv.print(code, {});
           }),
-          flatMap(a => srv.events),
+          flatMap(() => srv.events),
         )
         .subscribe(res => {
           expect(mockLodop.PRINT).toHaveBeenCalled();

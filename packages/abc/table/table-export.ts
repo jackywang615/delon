@@ -8,11 +8,11 @@ import { STColumn, STExportOptions } from './table.interfaces';
 export class STExport {
   constructor(@Optional() private xlsxSrv: XlsxService) {}
 
-  private _stGet(item: any, col: STColumn): any {
+  private _stGet(item: any, col: STColumn, index: number): any {
     const ret: { [key: string]: any } = { t: 's', v: '' };
 
     if (col.format) {
-      ret.v = col.format(item, col);
+      ret.v = col.format(item, col, index);
     } else {
       const val = deepGet(item, col.index as string[], '');
       ret.v = val;
@@ -35,11 +35,9 @@ export class STExport {
   private genSheet(opt: STExportOptions): { [sheet: string]: {} } {
     const sheets: { [sheet: string]: {} } = {};
     const sheet = (sheets[opt.sheetname || 'Sheet1'] = {});
-    const colData = opt._c.filter(
-      w => w.exported !== false && w.index && (!w.buttons || w.buttons.length === 0),
-    );
+    const colData = opt._c!.filter(w => w.exported !== false && w.index && (!w.buttons || w.buttons.length === 0));
     const cc = colData.length;
-    const dc = opt._d.length;
+    const dc = opt._d!.length;
 
     // column
     for (let i = 0; i < cc; i++) {
@@ -52,7 +50,7 @@ export class STExport {
     // content
     for (let i = 0; i < dc; i++) {
       for (let j = 0; j < cc; j++) {
-        sheet[`${String.fromCharCode(j + 65)}${i + 2}`] = this._stGet(opt._d[i], colData[j]);
+        sheet[`${String.fromCharCode(j + 65)}${i + 2}`] = this._stGet(opt._d![i], colData[j], i);
       }
     }
 

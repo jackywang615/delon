@@ -1,5 +1,5 @@
 <ng-container *ngIf="isMobile">
-  <i nz-icon type="menu" class="header-menu-icon" nz-popover [nzTitle]="null" nzTrigger="click" nzPlacement="bottomRight" [nzContent]="mobileMenu"></i>
+  <i nz-icon type="menu" class="header-menu-icon" nz-popover [(nzVisible)]="menuVisible" [nzTitle]="null" nzTrigger="click" nzPlacement="bottomRight" [nzContent]="mobileMenu"></i>
   <ng-template #mobileMenu>
     <div class="header-menu">
       <div class="d-flex justify-content-between align-items-center">
@@ -12,16 +12,16 @@
         </button>
       </div>
       <ul nz-menu nzMode="inline" class="text-center menu-site">
-        <li nz-menu-item routerLink="/docs/getting-started/{{i18n.zone}}">
+        <li nz-menu-item (click)="toViaMobile('/docs/getting-started')">
           {{'app.header.menu.docs' | translate}}
         </li>
-        <li nz-menu-item routerLink="/components/view/{{i18n.zone}}">
+        <li nz-menu-item (click)="toViaMobile('/components/view')">
           {{'app.header.menu.components' | translate}}
         </li>
         <li nz-submenu>
           <span title>{{'app.header.menu.delon' | translate}}</span>
           <ul>
-            <li *ngFor="let i of delon" nz-menu-item routerLink="/{{i}}/getting-started/{{i18n.zone}}">
+            <li *ngFor="let i of delon" nz-menu-item (click)="toViaMobile(i)">
               {{'app.header.menu.' + i | translate}}
             </li>
           </ul>
@@ -38,8 +38,8 @@
 <nz-row>
   <nz-col nzXs="24" nzSm="24" nzMd="6" nzLg="5" nzXl="5" nzXXl="4">
     <a routerLink="/{{i18n.zone}}">
-      <nz-tooltip nzTitle="{{ 'app.footer.qqgroup' | translate}}: 316911865">
-        <span nz-tooltip (click)="onCopy('316911865')" id="logo">
+      <nz-tooltip nzTitle="{{ 'app.footer.qqgroup' | translate}}: 428749721">
+        <span nz-tooltip (click)="onCopy('428749721')" id="logo">
           <img src="./assets/img/logo-color.svg" style="max-height: 32px;" />
           <img src="./assets/img/ng-alain.svg" style="max-height: 32px;" />
         </span>
@@ -66,14 +66,14 @@
             {{'app.header.menu.components' | translate}}
           </li>
           <li nz-menu-item>
-            <nz-dropdown nzPlacement="bottomRight">
-              <div nz-dropdown>{{'app.header.menu.delon' | translate}}</div>
+            <div nz-dropdown nzPlacement="bottomRight" [nzDropdownMenu]="delonMenu">{{'app.header.menu.delon' | translate}}</div>
+            <nz-dropdown-menu #delonMenu="nzDropdownMenu">
               <ul nz-menu>
                 <li *ngFor="let i of delon" nz-menu-item routerLink="/{{i}}/getting-started/{{i18n.zone}}">
                   {{'app.header.menu.' + i | translate}}
                 </li>
               </ul>
-            </nz-dropdown>
+            </nz-dropdown-menu>
           </li>
           <li nz-menu-item>
             <a href="https://e.ng-alain.com/" target="_blank">

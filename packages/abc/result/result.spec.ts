@@ -96,27 +96,21 @@ describe('abc: result', () => {
 
 @Component({
   template: `
-    <result
-      #comp
-      [type]="type"
-      [title]="title"
-      [description]="description"
-      [extra]="extra"
-    ></result>
+    <result #comp [type]="type" [title]="title" [description]="description" [extra]="extra"></result>
     <ng-template #titleTpl><p id="titleTpl">titleTpl</p></ng-template>
     <ng-template #descriptionTpl><p id="descriptionTpl">descriptionTpl</p></ng-template>
     <ng-template #extraTpl><p id="extraTpl">extraTpl</p></ng-template>
   `,
 })
 class TestComponent {
-  @ViewChild('comp')
+  @ViewChild('comp', { static: true })
   comp: ResultComponent;
   type = 'custom';
-  @ViewChild('titleTpl')
+  @ViewChild('titleTpl', { static: true })
   titleTpl: TemplateRef<void>;
-  @ViewChild('descriptionTpl')
+  @ViewChild('descriptionTpl', { static: true })
   descriptionTpl: TemplateRef<void>;
-  @ViewChild('extraTpl')
+  @ViewChild('extraTpl', { static: true })
   extraTpl: TemplateRef<void>;
   title: string | TemplateRef<void> = 'title';
   description: string | TemplateRef<void> = 'description';

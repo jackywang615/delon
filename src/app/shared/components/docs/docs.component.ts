@@ -7,7 +7,6 @@ import { filter } from 'rxjs/operators';
 import { ALAIN_I18N_TOKEN } from '@delon/theme';
 import { deepCopy } from '@delon/util';
 
-import { environment } from '../../../../environments/environment';
 import { I18NService } from '../../../core/i18n/service';
 import { MetaService } from '../../../core/meta.service';
 
@@ -33,11 +32,9 @@ export class DocsComponent implements OnInit, OnDestroy {
     private router: Router,
     private sanitizer: DomSanitizer,
   ) {
-    this.i18NChange$ = this.i18n.change
-      .pipe(filter(() => !!this.item))
-      .subscribe(() => {
-        this.init();
-      });
+    this.i18NChange$ = this.i18n.change.pipe(filter(() => !!this.item)).subscribe(() => {
+      this.init();
+    });
   }
 
   private genData() {
@@ -73,17 +70,15 @@ export class DocsComponent implements OnInit, OnDestroy {
       );
     }
 
-    if (ret.con.content)
-      ret.con.content = this.sanitizer.bypassSecurityTrustHtml(ret.con.content);
-    if (ret.con.api)
-      ret.con.api = this.sanitizer.bypassSecurityTrustHtml(ret.con.api);
+    if (ret.con.content) ret.con.content = this.sanitizer.bypassSecurityTrustHtml(ret.con.content);
+    if (ret.con.api) ret.con.api = this.sanitizer.bypassSecurityTrustHtml(ret.con.api);
 
     this.data = ret;
 
     // goTo
     setTimeout(() => {
       const toc = this.router.parseUrl(this.router.url).fragment || '';
-      if (toc) document.querySelector(`#${toc}`).scrollIntoView();
+      if (toc) document.querySelector(`#${toc}`)!.scrollIntoView();
     }, 200);
   }
 
@@ -111,9 +106,7 @@ export class DocsComponent implements OnInit, OnDestroy {
     this.demoStr = this.i18n.fanyi('app.component.examples');
     this.demoContent = this.sanitizer.bypassSecurityTrustHtml(`
             ${this.demoStr}
-            <a onclick="window.location.hash='${
-      this.demoStr
-      }'" class="anchor">#</a>
+            <a onclick="window.location.hash='${this.demoStr}'" class="anchor">#</a>
         `);
   }
 
@@ -121,11 +114,9 @@ export class DocsComponent implements OnInit, OnDestroy {
     this.genData();
     this.genDemoTitle();
     setTimeout(() => {
-      const elements = document.querySelectorAll(
-        '[class*="language-"], [class*="lang-"]',
-      );
+      const elements = document.querySelectorAll('[class*="language-"], [class*="lang-"]');
       // tslint:disable-next-line:no-conditional-assignment
-      for (let i = 0, element; (element = elements[i++]);) {
+      for (let i = 0, element; (element = elements[i++]); ) {
         hljs.highlightBlock(element);
       }
     }, 250);

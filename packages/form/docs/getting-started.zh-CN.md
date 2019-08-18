@@ -58,7 +58,7 @@ angular.json
 
 ```json
 "scripts": [
-    "node_modules/ajv/dist/ajv.bundle.js"
+  "node_modules/ajv/dist/ajv.bundle.js"
 ]
 ```
 
@@ -109,10 +109,10 @@ export class DelonModule {
 
 ```ts
 @Component({
-    selector: 'app-home',
-    template: `
-    <sf [schema]="schema" (formSubmit)="submit($event)"></sf>
-    `
+  selector: 'app-home',
+  template: `
+  <sf [schema]="schema" (formSubmit)="submit($event)"></sf>
+  `
 })
 export class HomeComponent {
   schema: SFSchema = {
@@ -131,9 +131,7 @@ export class HomeComponent {
     }
   };
 
-  submit(value: any) {
-
-  }
+  submit(value: any) { }
 }
 ```
 
@@ -152,6 +150,8 @@ export class HomeComponent {
 | `[firstVisual]`  | 是否立即呈现错误视觉            | `boolean`                   | `true`       |
 | `[liveValidate]` | 是否实时校验，`false` 提交时检验 | `boolean`                   | `true`       |
 | `[autocomplete]` | 指定表单 `autocomplete` 值      | `'on','off'`                    | `null`       |
+| `[disabled]` | 是否禁用状态  | `boolean` | `false` |
+| `[loading]` | 是否加载状态，当 `true` 重置按钮禁止状态，提交按钮加载状态  | `boolean` | `false` |
 | `(formChange)`   | 数据变更时回调                  | `EventEmitter<{}>`          | -            |
 | `(formSubmit)`   | 提交表单时回调                  | `EventEmitter<{}>`          | -            |
 | `(formReset)`    | 重置表单时回调                  | `EventEmitter<{}>`          | -            |
@@ -163,8 +163,10 @@ export class HomeComponent {
 |------------|------------|----------|------|
 | `[submit]` | 提交按钮文本 | `string` | `提交` |
 | `[submit_type]` | 提交按钮类型 | `string` | `primary` |
+| `[submit_icon]` | 提交按钮图标 | `SFButtonIcon` | - |
 | `[reset]` | 重置按钮文本 | `string` | `重置` |
 | `[reset_type]` | 重置按钮类型 | `string` | `default` |
+| `[reset_icon]` | 重置按钮图标 | `SFButtonIcon` | - |
 | `[search]` | 搜索按钮文本 | `string` | `搜索` |
 | `[edit]` | 编辑按钮文本 | `string` | `保存` |
 | `[render]` | 按钮样式 | `SFRenderButton` | - |
@@ -182,7 +184,7 @@ export class HomeComponent {
 | `getValue`      | 根据路径获取表单元素当前值                            | `any`          |
 | `setValue`      | 根据路径设置某个表单元素属性值，若路径不存在会产生异常 | `this`         |
 
-> **注：** 所有 path 采用 `/` 来分隔，例如：`/user/name`。
+> **注：** 所有 path 采用 `/` 来分隔，例如：`/user/name`、`/arr/0/name`。
 
 ### 按钮说明
 

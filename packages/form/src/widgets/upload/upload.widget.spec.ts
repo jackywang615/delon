@@ -1,10 +1,9 @@
 import { DebugElement } from '@angular/core';
-import { inject, ComponentFixture } from '@angular/core/testing';
+import { inject, ComponentFixture, fakeAsync } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NzModalService, NzUploadComponent } from 'ng-zorro-antd';
 
 import { createTestContext } from '@delon/testing';
-import { Subject } from 'rxjs';
 import { configureSFTestSuite, SFPage, TestFormComponent } from '../../../spec/base.spec';
 import { UploadWidget } from './upload.widget';
 
@@ -28,7 +27,7 @@ describe('form: widget: upload', () => {
   }
 
   function getUpload() {
-    return dl.query(By.directive(NzUploadComponent)).injector.get(NzUploadComponent);
+    return dl.query(By.directive(NzUploadComponent)).injector.get<NzUploadComponent>(NzUploadComponent);
   }
 
   it('should be ingore update value when status is not success', () => {
@@ -40,6 +39,43 @@ describe('form: widget: upload', () => {
     comp.change({ type: 'error', fileList: [] } as any);
     expect(comp.formProperty.setValue).not.toHaveBeenCalled();
   });
+
+  it('#setValue', fakeAsync(() => {
+    page
+      .newSchema({
+        properties: {
+          a: {
+            type: 'string',
+            enum: [
+              {
+                uid: -1,
+                name: 'xxx.png',
+                status: 'done',
+                response: {
+                  resource_id: 10,
+                },
+              },
+            ],
+            ui: { widget, resReName: 'resource_id' },
+          },
+        },
+      })
+      .dc(1);
+    expect(page.getEl('.ant-upload-list-item').textContent!.trim()).toContain('xxx.png');
+    page
+      .setValue('/a', [
+        {
+          uid: -1,
+          name: 'zzz.png',
+          status: 'done',
+          response: {
+            resource_id: 10,
+          },
+        },
+      ])
+      .dc(1);
+    expect(page.getEl('.ant-upload-list-item').textContent!.trim()).toContain('zzz.png');
+  }));
 
   describe('property', () => {
     it('#fileList', () => {
@@ -95,19 +131,17 @@ describe('form: widget: upload', () => {
     });
 
     it('#beforeUpload', () => {
-      page
-        .newSchema({
-          properties: { a: { type: 'string', ui: { widget, type: 'drag', beforeUpload: () => {} } } },
-        });
+      page.newSchema({
+        properties: { a: { type: 'string', ui: { widget, type: 'drag', beforeUpload: () => {} } } },
+      });
 
       expect(getUpload().nzBeforeUpload != null).toBe(true);
     });
 
     it('#customRequest', () => {
-      page
-        .newSchema({
-          properties: { a: { type: 'string', ui: { widget, type: 'drag', customRequest: () => {} } } },
-        });
+      page.newSchema({
+        properties: { a: { type: 'string', ui: { widget, type: 'drag', customRequest: () => {} } } },
+      });
 
       expect(getUpload().nzCustomRequest != null).toBe(true);
     });
@@ -123,7 +157,7 @@ describe('form: widget: upload', () => {
           },
         });
         const comp = page.getWidget<UploadWidget>('sf-upload');
-        comp.handlePreview(null);
+        comp.handlePreview(null!);
         page.checkCalled('a', 'preview');
       });
       it('should be preview image', inject([NzModalService], (msg: NzModalService) => {
@@ -151,9 +185,33 @@ describe('form: widget: upload', () => {
         });
         const comp = page.getWidget<UploadWidget>('sf-upload');
         spyOn(msg, 'create');
-        comp.handlePreview({ } as any);
+        comp.handlePreview({} as any);
         expect(msg.create).not.toHaveBeenCalled();
       }));
     });
+  });
+
+  it('should be clear value when trigger remove', () => {
+    page.newSchema({
+      properties: {
+        a: {
+          type: 'string',
+          enum: [
+            {
+              uid: -1,
+              name: 'xxx.png',
+              status: 'done',
+              response: {
+                resource_id: 10,
+              },
+            },
+          ],
+          ui: { widget, resReName: 'resource_id' },
+        },
+      },
+    });
+    page.checkValue('/a', 10);
+    page.click('.anticon-close');
+    page.checkValue('/a', '');
   });
 });

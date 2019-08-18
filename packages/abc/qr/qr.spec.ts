@@ -1,5 +1,5 @@
-import { Component, DebugElement, Injector, ViewChild } from '@angular/core';
-import { inject, ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, DebugElement, ViewChild } from '@angular/core';
+import { inject, ComponentFixture, TestBed, TestBedStatic } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { configureTestSuite, createTestContext } from '@delon/testing';
 
@@ -9,7 +9,7 @@ import { QRModule } from './qr.module';
 import { QRService } from './qr.service';
 
 describe('abc: qr', () => {
-  let injector: Injector;
+  let injector: TestBedStatic;
   let fixture: ComponentFixture<TestComponent>;
   let dl: DebugElement;
   let context: TestComponent;
@@ -33,7 +33,7 @@ describe('abc: qr', () => {
     beforeEach(() => {
       ({ fixture, dl, context } = createTestContext(TestComponent));
       fixture.detectChanges();
-      srv = injector.get(QRService);
+      srv = injector.get<QRService>(QRService);
     });
 
     function getDataURL() {
@@ -62,6 +62,13 @@ describe('abc: qr', () => {
         srv.refresh();
         expect(getDataURL().length).toBeGreaterThan(1);
       });
+      it('should be support unicode value', () => {
+        srv.refresh('中国🇨🇳');
+        const res = srv.dataURL.startsWith(
+          `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANwAAADcCAYAAAAbWs+BAAAOoElEQVR4Xu2d0XIjVw5Dx///0d4qT7aiSdLSoRoXui2dvIYGQRBotmTv5uv7+/v7l/`,
+        );
+        expect(res).toBe(true);
+      });
     });
   });
 });
@@ -84,7 +91,7 @@ describe('abc: qr', () => {
   `,
 })
 class TestComponent {
-  @ViewChild('comp')
+  @ViewChild('comp', { static: true })
   comp: QRComponent;
 
   value = 'https://ng-alain.com/';
@@ -99,5 +106,5 @@ class TestComponent {
   padding = 10;
   size = 220;
 
-  change(dataURL: string) {}
+  change() {}
 }

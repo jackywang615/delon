@@ -9,9 +9,11 @@ describe('Schematic: edit', () => {
   const tsPath = '/projects/foo/src/app/routes/trade/edit/edit.component.ts';
   const htmlPath = '/projects/foo/src/app/routes/trade/edit/edit.component.html';
 
-  beforeEach(() => {
-    ({ runner, tree } = createAlainAndModuleApp());
-    tree = runner.runSchematic('edit', { name: 'edit', module: 'trade' }, tree);
+  beforeEach(async () => {
+    ({ runner, tree } = await createAlainAndModuleApp());
+    tree = await runner
+      .runSchematicAsync('edit', { name: 'edit', module: 'trade' }, tree)
+      .toPromise();
   });
 
   it('should be generate list page', () => {

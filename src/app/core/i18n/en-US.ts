@@ -1,15 +1,13 @@
 export const ENUS = {
-  slogan: 'A based on Antd for web applications',
+  slogan: 'A front-end solution based on Antd',
   'app.header.search': 'Search in ng-alain.com',
   'app.home.preview': 'Preview',
-  'app.home.start': 'Start',
-  'app.home.slogan':
-    'Out-of-box UI solution for enterprise applications, Let developers focus on business.',
+  'app.home.start': 'Get started',
+  'app.home.slogan': 'Out-of-box UI solution for enterprise applications, let developers focus on business.',
   'app.home.feature': 'Feature',
   'app.home.feature.antd': 'Built on the design principles developed by Ant Design',
   'app.home.feature.zorro': 'Basic component based on NG-ZORRO',
-  'app.home.feature.delon':
-    'A set of higher-order components, chart, authentication, ACL, cache, mock, tests, etc.',
+  'app.home.feature.delon': 'A set of higher-order components, chart, authentication, ACL, cache, mock, testing, etc.',
   'app.home.feature.out-of-box': 'Out of box',
   'app.home.feature.out-of-box.desc': 'A complete Angular scaffold for production environments',
   'app.home.feature.less': 'Simple customization',
@@ -53,6 +51,7 @@ export const ENUS = {
   'app.footer.faq': 'FAQ',
   'app.footer.issues': 'Issues',
   'app.footer.qqgroup': 'QQ Group',
+  'app.footer.qqgroup.full': '(Full)',
   'app.footer.primary-color-changed': 'Change primary color successfully!',
   'app.content.edit-page': 'Edit this page on GitHub!',
   'app.content.edit-demo': 'Edit this demo on GitHub!',
@@ -64,4 +63,6 @@ export const ENUS = {
   'app.demo.copy': 'Copy code',
   'app.demo.copied': 'Copied!',
   'app.demo.stackblitz': 'Open in StackBlitz',
+  'sf.name': 'Name',
+  'sf.description': 'This is description',
 };

@@ -35,19 +35,12 @@ describe('chart: radar', () => {
 
 @Component({
   template: `
-    <g2-radar
-      #comp
-      [hasLegend]="hasLegend"
-      [title]="title"
-      [tickCount]="tickCount"
-      [data]="data"
-      [delay]="delay"
-    >
+    <g2-radar #comp [hasLegend]="hasLegend" [title]="title" [tickCount]="tickCount" [data]="data" [delay]="delay">
     </g2-radar>
   `,
 })
 class TestComponent {
-  @ViewChild('comp') comp: G2RadarComponent;
+  @ViewChild('comp', { static: true }) comp: G2RadarComponent;
   title = 'title';
   hasLegend = true;
   tickCount = 4;

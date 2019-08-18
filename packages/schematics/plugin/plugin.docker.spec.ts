@@ -5,9 +5,11 @@ describe('NgAlainSchematic: plugin: docker', () => {
   let runner: SchematicTestRunner;
   let tree: UnitTestTree;
 
-  beforeEach(() => {
-    ({ runner, tree } = createAlainApp());
-    tree = runner.runSchematic('plugin', { name: 'docker', type: 'add' }, tree);
+  beforeEach(async () => {
+    ({ runner, tree } = await createAlainApp());
+    tree = await runner
+      .runSchematicAsync('plugin', { name: 'docker', type: 'add' }, tree)
+      .toPromise();
   });
 
   describe('when add', () => {
@@ -21,7 +23,10 @@ describe('NgAlainSchematic: plugin: docker', () => {
 
   describe('when remove', () => {
     beforeEach(
-      () => (tree = runner.runSchematic('plugin', { name: 'docker', type: 'remove' }, tree)),
+      async () =>
+        (tree = await runner
+          .runSchematicAsync('plugin', { name: 'docker', type: 'remove' }, tree)
+          .toPromise()),
     );
     it(`should add fiels`, () => {
       expect(tree.exists(`/projects/${APPNAME}/.dockerignore`)).toBe(false);

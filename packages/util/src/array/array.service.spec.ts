@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { NzTreeBaseService, NzTreeNode } from 'ng-zorro-antd';
+import { NzTreeBaseService, NzTreeNode } from 'ng-zorro-antd/core';
 import { deepCopy } from '../other/other';
 import { DelonUtilConfig } from '../util.config';
 import { DelonUtilModule } from '../util.module';
@@ -21,7 +21,7 @@ describe('utils: array', () => {
     beforeEach(() => {
       srv = TestBed.configureTestingModule({
         imports: [DelonUtilModule],
-      }).get(ArrayService);
+      }).get<ArrayService>(ArrayService);
     });
     it('should be tree to array', () => {
       const res = srv.treeToArr([
@@ -70,7 +70,7 @@ describe('utils: array', () => {
     beforeEach(() => {
       srv = TestBed.configureTestingModule({
         imports: [DelonUtilModule],
-      }).get(ArrayService);
+      }).get<ArrayService>(ArrayService);
     });
     it('should be array to tree', () => {
       const res = srv.arrToTree([
@@ -101,7 +101,7 @@ describe('utils: array', () => {
     beforeEach(() => {
       srv = TestBed.configureTestingModule({
         imports: [DelonUtilModule],
-      }).get(ArrayService);
+      }).get<ArrayService>(ArrayService);
       page = new PageTreeNode();
     });
 
@@ -205,7 +205,7 @@ describe('utils: array', () => {
             },
           },
         ],
-      }).get(ArrayService);
+      }).get<ArrayService>(ArrayService);
     });
     it('should be tree to array', () => {
       const id = 100;
@@ -242,7 +242,7 @@ describe('utils: array', () => {
       if (value == null) {
         expect(item == null).toBe(true);
       } else {
-        expect(item[field]).toBe(value);
+        expect(item![field]).toBe(value);
       }
       return this;
     }

@@ -1,5 +1,5 @@
-import { Component, DebugElement, Injector, ViewChild } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, DebugElement, ViewChild } from '@angular/core';
+import { ComponentFixture, TestBed, TestBedStatic } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { configureTestSuite, createTestContext } from '@delon/testing';
 import { en_US, zh_CN, DelonLocaleModule, DelonLocaleService } from '@delon/theme';
@@ -8,7 +8,7 @@ import { TagSelectComponent } from './tag-select.component';
 import { TagSelectModule } from './tag-select.module';
 
 describe('abc: tag-select', () => {
-  let injector: Injector;
+  let injector: TestBedStatic;
   let fixture: ComponentFixture<TestComponent>;
   let dl: DebugElement;
   let context: TestComponent;
@@ -56,7 +56,7 @@ describe('abc: tag-select', () => {
   it('#i18n', () => {
     const triEl = dl.query(By.css('.tag-select__trigger')).nativeElement as HTMLElement;
     expect(triEl.innerText).toContain(zh_CN.tagSelect.expand);
-    injector.get(DelonLocaleService).setLocale(en_US);
+    injector.get<DelonLocaleService>(DelonLocaleService).setLocale(en_US);
     fixture.detectChanges();
     expect(triEl.innerText).toBe(en_US.tagSelect.expand);
   });
@@ -70,7 +70,7 @@ describe('abc: tag-select', () => {
   `,
 })
 class TestComponent {
-  @ViewChild('comp')
+  @ViewChild('comp', { static: true })
   comp: TagSelectComponent;
   categories = [
     { id: 0, text: '全部', value: false },

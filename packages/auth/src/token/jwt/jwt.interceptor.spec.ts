@@ -1,10 +1,6 @@
 import { HttpClient, HTTP_INTERCEPTORS } from '@angular/common/http';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-  TestRequest,
-} from '@angular/common/http/testing';
-import { Component } from '@angular/core';
+import { HttpClientTestingModule, HttpTestingController, TestRequest } from '@angular/common/http/testing';
+import { Component, Type } from '@angular/core';
 import { TestBed, TestBedStatic } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
@@ -17,7 +13,9 @@ import { JWTInterceptor } from './jwt.interceptor';
 import { JWTTokenModel } from './jwt.model';
 
 function genModel(
-  token: string = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImNpcGNoayIsImFkbWluIjp0cnVlLCJleHAiOjQ2NzA0MDk2MDB9.IINuMTwqwCQP63fSQ-ZPgOEaE8lilrUceUX9Wy47PBk`,
+  token:
+    | string
+    | null = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImNpcGNoayIsImFkbWluIjp0cnVlLCJleHAiOjQ2NzA0MDk2MDB9.IINuMTwqwCQP63fSQ-ZPgOEaE8lilrUceUX9Wy47PBk`,
 ) {
   const model = new JWTTokenModel();
   // from: https://jwt.io/
@@ -43,14 +41,11 @@ describe('auth: jwt.interceptor', () => {
         ]),
         DelonAuthModule,
       ],
-      providers: [
-        { provide: DelonAuthConfig, useValue: options },
-        { provide: HTTP_INTERCEPTORS, useClass: JWTInterceptor, multi: true },
-      ],
+      providers: [{ provide: DelonAuthConfig, useValue: options }, { provide: HTTP_INTERCEPTORS, useClass: JWTInterceptor, multi: true }],
     });
     if (tokenData) injector.get(DA_SERVICE_TOKEN).set(tokenData);
-    http = injector.get(HttpClient);
-    httpBed = injector.get(HttpTestingController);
+    http = injector.get<HttpClient>(HttpClient);
+    httpBed = injector.get(HttpTestingController as Type<HttpTestingController>);
   }
 
   it('should be add token', (done: () => void) => {

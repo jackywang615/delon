@@ -4,35 +4,36 @@ import { distinctUntilChanged, map } from 'rxjs/operators';
 import { DelonFormConfig } from '../config';
 import { ErrorData } from '../errors';
 import { SFValue } from '../interface';
-import { SFSchema } from '../schema';
+import { SFSchema, SFSchemaType } from '../schema';
 import { SFUISchema, SFUISchemaItem, SFUISchemaItemRun } from '../schema/ui';
 import { isBlank } from '../utils';
 import { SchemaValidatorFactory } from '../validator.factory';
 import { Widget } from '../widget';
+import { SF_SEQ } from '../const';
 
 export abstract class FormProperty {
+  private _errors: ErrorData[] | null = null;
+  private _valueChanges = new BehaviorSubject<SFValue>(null);
+  private _errorsChanges = new BehaviorSubject<ErrorData[] | null>(null);
+  private _visible = true;
+  private _visibilityChanges = new BehaviorSubject<boolean>(true);
+  private _root: PropertyGroup;
+  private _parent: PropertyGroup | null;
+  protected _objErrors: { [key: string]: ErrorData[] } = {};
   schemaValidator: (value: SFValue) => ErrorData[];
   schema: SFSchema;
   ui: SFUISchema | SFUISchemaItemRun;
   formData: {};
   _value: SFValue = null;
-  widget: Widget<FormProperty>;
-  private _errors: ErrorData[] = null;
-  protected _objErrors: { [key: string]: ErrorData[] } = {};
-  private _valueChanges = new BehaviorSubject<SFValue>(null);
-  private _errorsChanges = new BehaviorSubject<ErrorData[]>(null);
-  private _visible = true;
-  private _visibilityChanges = new BehaviorSubject<boolean>(true);
-  private _root: PropertyGroup;
-  private _parent: PropertyGroup;
-  private _path: string;
+  widget: Widget<FormProperty, SFUISchemaItem>;
+  path: string;
 
   constructor(
     schemaValidatorFactory: SchemaValidatorFactory,
     schema: SFSchema,
     ui: SFUISchema | SFUISchemaItem,
     formData: {},
-    parent: PropertyGroup,
+    parent: PropertyGroup | null,
     path: string,
     private _options: DelonFormConfig,
   ) {
@@ -40,16 +41,16 @@ export abstract class FormProperty {
     this.ui = ui;
     this.schemaValidator = schemaValidatorFactory.createValidatorFn(schema, {
       ingoreKeywords: this.ui.ingoreKeywords as string[],
-      debug: (ui as SFUISchemaItem)!.debug,
+      debug: (ui as SFUISchemaItem)!.debug!,
     });
     this.formData = formData || schema.default;
     this._parent = parent;
     if (parent) {
       this._root = parent.root;
-    } else if (this instanceof PropertyGroup) {
-      this._root = this as PropertyGroup;
+    } else {
+      this._root = this as any;
     }
-    this._path = path;
+    this.path = path;
   }
 
   get valueChanges() {
@@ -60,27 +61,23 @@ export abstract class FormProperty {
     return this._errorsChanges;
   }
 
-  get type(): string {
-    return this.schema.type;
+  get type(): SFSchemaType {
+    return this.schema.type!;
   }
 
-  get parent(): PropertyGroup {
+  get parent(): PropertyGroup | null {
     return this._parent;
   }
 
   get root(): PropertyGroup {
-    return this._root || ((this as any) as PropertyGroup);
-  }
-
-  get path(): string {
-    return this._path;
+    return this._root;
   }
 
   get value(): SFValue {
     return this._value;
   }
 
-  get errors(): ErrorData[] {
+  get errors(): ErrorData[] | null {
     return this._errors;
   }
 
@@ -144,12 +141,12 @@ export abstract class FormProperty {
   }
 
   /** 根据路径搜索表单属性 */
-  searchProperty(path: string): FormProperty {
+  searchProperty(path: string): FormProperty | null {
     let prop: FormProperty = this;
-    let base: PropertyGroup = null;
+    let base: PropertyGroup | null = null;
 
     let result = null;
-    if (path[0] === '/') {
+    if (path[0] === SF_SEQ) {
       base = this.findRoot();
       result = base.getProperty(path.substr(1));
     } else {
@@ -219,9 +216,10 @@ export abstract class FormProperty {
     // fix error format
     const hasCustomError = list != null && list.length > 0;
     if (hasCustomError) {
-      list.forEach((err, idx: number) => {
-        if (!err.message)
+      list.forEach(err => {
+        if (!err.message) {
           throw new Error(`The custom validator must contain a 'message' attribute to viewed error text`);
+        }
         err._custom = true;
       });
     }
@@ -242,11 +240,12 @@ export abstract class FormProperty {
 
   protected setErrors(errors: ErrorData[], emitFormat = true) {
     if (emitFormat && errors && !this.ui.onlyVisual) {
+      const l = (this.widget && this.widget.l.error) || {};
       errors = errors.map((err: ErrorData) => {
         let message =
           err._custom === true && err.message
             ? err.message
-            : (this.ui.errors || {})[err.keyword] || this._options.errors[err.keyword] || ``;
+            : (this.ui.errors || {})[err.keyword] || this._options.errors![err.keyword] || l[err.keyword] || ``;
 
         if (message && typeof message === 'function') {
           message = message(err) as string;
@@ -254,10 +253,7 @@ export abstract class FormProperty {
 
         if (message) {
           if (~(message as string).indexOf('{')) {
-            message = (message as string).replace(
-              /{([\.a-z0-9]+)}/g,
-              (v: string, key: string) => err.params[key] || '',
-            );
+            message = (message as string).replace(/{([\.a-z0-9]+)}/g, (_v: string, key: string) => err.params![key] || '');
           }
           err.message = message as string;
         }
@@ -317,14 +313,10 @@ export abstract class FormProperty {
               }),
             );
             const visibilityCheck = property._visibilityChanges;
-            const and = combineLatest(valueCheck, visibilityCheck).pipe(
-              map(results => results[0] && results[1]),
-            );
+            const and = combineLatest(valueCheck, visibilityCheck).pipe(map(results => results[0] && results[1]));
             propertiesBinding.push(and);
           } else {
-            console.warn(
-              `Can't find property ${dependencyPath} for visibility check of ${this.path}`,
-            );
+            console.warn(`Can't find property ${dependencyPath} for visibility check of ${this.path}`);
           }
         }
       }
@@ -342,13 +334,13 @@ export abstract class FormProperty {
 }
 
 export abstract class PropertyGroup extends FormProperty {
-  properties: { [key: string]: FormProperty } | FormProperty[] = null;
+  properties: { [key: string]: FormProperty } | FormProperty[] | null = null;
 
   getProperty(path: string) {
-    const subPathIdx = path.indexOf('/');
+    const subPathIdx = path.indexOf(SF_SEQ);
     const propertyId = subPathIdx !== -1 ? path.substr(0, subPathIdx) : path;
 
-    let property = this.properties[propertyId];
+    let property = this.properties![propertyId];
     if (property !== null && subPathIdx !== -1 && property instanceof PropertyGroup) {
       const subPath = path.substr(subPathIdx + 1);
       property = (property as PropertyGroup).getProperty(subPath);

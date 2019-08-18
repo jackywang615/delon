@@ -5,7 +5,7 @@ describe('NgAlainSchematic: plugin: g2', () => {
   let runner: SchematicTestRunner;
   let tree: UnitTestTree;
 
-  beforeEach(() => ({ runner, tree } = createAlainApp({ g2: true })));
+  beforeEach(async () => ({ runner, tree } = await createAlainApp({ g2: true })));
 
   describe('when add', () => {
     it(`should add dependencies`, () => {
@@ -22,7 +22,9 @@ describe('NgAlainSchematic: plugin: g2', () => {
   });
 
   describe('when remove', () => {
-    beforeEach(() => runner.runSchematic('plugin', { name: 'g2', type: 'remove' }, tree));
+    beforeEach(async () =>
+      runner.runSchematicAsync('plugin', { name: 'g2', type: 'remove' }, tree).toPromise(),
+    );
 
     it(`should add dependencies`, () => {
       const json = JSON.parse(tree.readContent('package.json'));

@@ -83,14 +83,22 @@ describe('abc: view', () => {
           expect(page.getEl(itemCls).style.paddingLeft).toBe(`${halfGutter}px`);
           expect(page.getEl(itemCls).style.paddingRight).toBe(`${halfGutter}px`);
         });
-        it('#labelWidth', () => {
-          context.parent_labelWidth = 20;
-          context.label = 'aa';
-          fixture.detectChanges();
-          page.expect(prefixCls + 'item-fixed');
-          expect(page.getEl(prefixCls + 'label').style.width).toBe(
-            `${context.parent_labelWidth}px`,
-          );
+        describe('#labelWidth', () => {
+          it('should working', () => {
+            context.parent_labelWidth = 20;
+            context.label = 'aa';
+            fixture.detectChanges();
+            page.expect(prefixCls + 'item-fixed');
+            expect(page.getEl(prefixCls + 'label').style.width).toBe(`${context.parent_labelWidth}px`);
+          });
+          it('should be ingore width when layout not horizontal', () => {
+            context.parent_layout = 'vertical';
+            context.parent_labelWidth = 20;
+            context.label = 'aa';
+            fixture.detectChanges();
+            page.expect(prefixCls + 'item-fixed');
+            page.expect('sv__label-width', 0);
+          });
         });
       });
       describe('#item', () => {
@@ -118,6 +126,16 @@ describe('abc: view', () => {
           context.label = 'test-label';
           fixture.detectChanges();
           expect(page.getEl(prefixCls + 'label').textContent).toContain('test-label');
+        });
+        it('#optional', () => {
+          context.optional = 'test-optional';
+          fixture.detectChanges();
+          expect(page.getEl(prefixCls + 'label-optional').textContent).toContain('test-optional');
+        });
+        it('#optionalHelp', () => {
+          context.optionalHelp = 'test-optional';
+          fixture.detectChanges();
+          expect(page.getEl('nz-tooltip') != null).toBe(true);
         });
         describe('#default', () => {
           beforeEach(() => {
@@ -149,6 +167,13 @@ describe('abc: view', () => {
             fixture.detectChanges();
             context.viewComp.checkContent();
             page.expect(prefixCls + 'default', 0);
+          });
+        });
+        describe('#unit', () => {
+          it('should be working', () => {
+            context.unit = '个';
+            fixture.detectChanges();
+            page.expect(prefixCls + 'unit', 1);
           });
         });
         it('#type', () => {
@@ -227,26 +252,40 @@ describe('abc: view', () => {
       [default]="parent_default"
     >
       <sv-title>title</sv-title>
-      <sv #viewComp [label]="label" [col]="col" [type]="type" [default]="default">{{ content }}</sv>
+      <sv
+        #viewComp
+        [label]="label"
+        [col]="col"
+        [type]="type"
+        [default]="default"
+        [unit]="unit"
+        [optional]="optional"
+        [optionalHelp]="optionalHelp"
+      >
+        {{ content }}
+      </sv>
     </sv-container>
   `,
 })
 class TestComponent {
-  @ViewChild('svComp')
+  @ViewChild('svComp', { static: true })
   svComp: SVContainerComponent;
-  @ViewChild('viewComp')
+  @ViewChild('viewComp', { static: true })
   viewComp: SVComponent;
   parent_size: 'small' | 'large' = 'large';
   parent_layout: 'horizontal' | 'vertical' = 'horizontal';
-  parent_labelWidth: number = null;
+  parent_labelWidth: number | null = null;
   parent_gutter: number = 32;
   parent_col: number = 3;
   parent_default: boolean = true;
   parent_title = 'title';
 
   label: string;
+  optional: string;
+  optionalHelp: string;
   content = '1';
-  col: number;
+  col: number | null;
   default: boolean;
+  unit: string;
   type: 'primary' | 'success' | 'danger' | 'warning';
 }

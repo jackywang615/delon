@@ -1,10 +1,11 @@
+// tslint:disable: no-duplicate-imports
 import { NgModule, LOCALE_ID, APP_INITIALIZER, Injector } from '@angular/core';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 // #region default language
-// 参考：https://ng-alain.com/docs/i18n
+// Reference: https://ng-alain.com/docs/i18n
 import { default as ngLang } from '@angular/common/locales/zh';
 import { NZ_I18N, zh_CN as zorroLang } from 'ng-zorro-antd';
 import { DELON_LOCALE, zh_CN as delonLang } from '@delon/theme';
@@ -29,7 +30,6 @@ import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { ALAIN_I18N_TOKEN } from '@delon/theme';
 import { I18NService } from '@core/i18n/i18n.service';
 
-// 加载i18n语言文件
 export function I18nHttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, `assets/tmp/i18n/`, '.json');
 }
@@ -72,7 +72,7 @@ const GLOBAL_THIRD_MODULES = [
 
 // #region Startup Service
 import { StartupService } from '@core/startup/startup.service';
-export function StartupServiceFactory(startupService: StartupService): Function {
+export function StartupServiceFactory(startupService: StartupService) {
   return () => startupService.load();
 }
 const APPINIT_PROVIDES = [

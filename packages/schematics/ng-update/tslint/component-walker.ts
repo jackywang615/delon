@@ -18,18 +18,17 @@ import { ExternalFailureWalker } from './external-failure-walker';
  */
 export class ComponentWalker extends ExternalFailureWalker {
 
-  visitInlineTemplate(_template: ts.StringLiteralLike) {}
-  visitInlineStylesheet(_stylesheet: ts.StringLiteralLike) {}
-
-  visitExternalTemplate(_template: ExternalResource) {}
-  visitExternalStylesheet(_stylesheet: ExternalResource) {}
-
   /**
    * We keep track of all visited stylesheet files because we allow manually reporting external
    * stylesheets which couldn't be detected by the component walker. Reporting these files multiple
    * times will result in duplicated TSLint failures and replacements.
    */
-  private _visitedStylesheetFiles: Set<string> = new Set<string>();
+  private _visitedStylesheetFiles = new Set<string>();
+  visitInlineTemplate(_template: ts.StringLiteralLike) { }
+  visitInlineStylesheet(_stylesheet: ts.StringLiteralLike) { }
+
+  visitExternalTemplate(_template: ExternalResource) { }
+  visitExternalStylesheet(_stylesheet: ExternalResource) { }
 
   visitNode(node: ts.Node) {
     if (node.kind === ts.SyntaxKind.CallExpression) {
@@ -154,8 +153,10 @@ export class ComponentWalker extends ExternalFailureWalker {
    * TypeScript node could not be resolved in the file system.
    */
   private _createResourceNotFoundFailure(node: ts.Node, resourceUrl: string) {
-    this.addFailureAtNode(node, `Could not resolve resource file: "${resourceUrl}". ` +
-        `Skipping automatic upgrade for this file.`);
+    this.addFailureAtNode(
+      node,
+      `Could not resolve resource file: "${resourceUrl}". ` + `Skipping automatic upgrade for this file.`,
+    );
   }
 
   /** Reports the specified additional stylesheets. */

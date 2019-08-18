@@ -3,7 +3,6 @@ import endOfDay from 'date-fns/end_of_day';
 import endOfMonth from 'date-fns/end_of_month';
 import endOfWeek from 'date-fns/end_of_week';
 import endOfYear from 'date-fns/end_of_year';
-import format from 'date-fns/format';
 import parse from 'date-fns/parse';
 import startOfDay from 'date-fns/start_of_day';
 import startOfMonth from 'date-fns/start_of_month';
@@ -19,17 +18,7 @@ import subYears from 'date-fns/sub_years';
  * @param time 开始时间
  */
 export function getTimeDistance(
-  type:
-    | 'today'
-    | '-today'
-    | 'yesterday'
-    | 'week'
-    | '-week'
-    | 'month'
-    | '-month'
-    | 'year'
-    | '-year'
-    | number,
+  type: 'today' | '-today' | 'yesterday' | 'week' | '-week' | 'month' | '-month' | 'year' | '-year' | number,
   time?: Date | string | number,
 ): [Date, Date] {
   time = parse(time || new Date());
@@ -75,5 +64,5 @@ export function getTimeDistance(
  * fix time is the most, big value
  */
 export function fixEndTimeOfRange(dates: [Date, Date]): [Date, Date] {
-  return [ startOfDay(dates[0]), endOfDay(dates[1]) ];
+  return [startOfDay(dates[0]), endOfDay(dates[1])];
 }

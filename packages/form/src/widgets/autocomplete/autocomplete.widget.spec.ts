@@ -1,4 +1,4 @@
-import { DebugElement, Inject } from '@angular/core';
+import { DebugElement } from '@angular/core';
 import { fakeAsync, ComponentFixture } from '@angular/core/testing';
 import { createTestContext } from '@delon/testing';
 import { of } from 'rxjs';
@@ -22,6 +22,23 @@ describe('form: widget: autocomplete', () => {
     page = new SFPage(context.comp);
     page.prop(dl, context, fixture);
   });
+
+  it('#setValue', fakeAsync(() => {
+    page
+      .newSchema({
+        properties: {
+          a: { type: 'string', ui: { widget }, enum: ['aaa', 'bbb', 'ccc'] },
+        },
+      })
+      .setValue('/a', 'bbb');
+    const widgetInstance = page.getProperty('/a').widget as AutoCompleteWidget;
+    // tslint:disable-next-line: no-string-literal
+    const list = widgetInstance['fixData'] as SFSchemaEnum[];
+    const item = list.find(w => w.checked === true) as SFSchemaEnum;
+    expect(item != null).toBe(true);
+    expect(item.value).toBe('bbb');
+    page.asyncEnd();
+  }));
 
   describe('[data source]', () => {
     it('with enum', fakeAsync(() => {
@@ -70,13 +87,13 @@ describe('form: widget: autocomplete', () => {
         })
         .time(100)
         .typeChar(typeValue)
-        .checkCount('nz-auto-option', config.uiEmailSuffixes.length)
+        .checkCount('nz-auto-option', config.uiEmailSuffixes!.length)
         .click('nz-auto-option')
-        .checkValue('a', `${typeValue}@${config.uiEmailSuffixes[0]}`)
+        .checkValue('a', `${typeValue}@${config.uiEmailSuffixes![0]}`)
         .asyncEnd();
     }));
     it('with email and custom suffix of format', fakeAsync(() => {
-      const suffixes = [ 'a.com', 'b.com' ];
+      const suffixes = ['a.com', 'b.com'];
       const typeValue = 'a';
       page
         .newSchema({
@@ -138,7 +155,7 @@ describe('form: widget: autocomplete', () => {
               type: 'string',
               ui: {
                 widget,
-                filterOption: (input: string, option: SFSchemaEnum) => option.label === 'a11',
+                filterOption: (_input: string, option: SFSchemaEnum) => option.label === 'a11',
               },
               enum: data,
             },

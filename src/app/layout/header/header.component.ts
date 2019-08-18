@@ -1,23 +1,17 @@
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  HostListener,
-  OnInit,
-  ViewChild,
-} from '@angular/core';
+// tslint:disable: member-ordering
+import { AfterViewInit, Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { copy, LazyService } from '@delon/util';
 import { NzMessageService } from 'ng-zorro-antd';
 import { filter } from 'rxjs/operators';
 
-import { I18NService, LangType } from '../../core/i18n/service';
+import { I18NService } from '../../core/i18n/service';
 import { MetaService } from '../../core/meta.service';
 import { MobileService } from '../../core/mobile.service';
 import { MetaSearchGroup, MetaSearchGroupItem } from '../../interfaces';
 
 declare const docsearch: any;
-declare const algoliasearch: any;
+// declare const algoliasearch: any;
 
 @Component({
   selector: 'app-header',
@@ -33,6 +27,9 @@ export class HeaderComponent implements OnInit, AfterViewInit {
   currentVersion = 'stable';
   delon = ['theme', 'auth', 'acl', 'form', 'cache', 'chart', 'mock', 'util', 'cli'];
 
+  @ViewChild('searchInput', { static: false })
+  searchInput: ElementRef<HTMLInputElement>;
+
   constructor(
     public i18n: I18NService,
     private router: Router,
@@ -41,9 +38,7 @@ export class HeaderComponent implements OnInit, AfterViewInit {
     private meta: MetaService,
     private lazy: LazyService,
   ) {
-    router.events
-      .pipe(filter(evt => evt instanceof NavigationEnd))
-      .subscribe(() => (this.menuVisible = false));
+    router.events.pipe(filter(evt => evt instanceof NavigationEnd)).subscribe(() => (this.menuVisible = false));
     this.mobileSrv.change.subscribe(res => (this.isMobile = res));
   }
 
@@ -72,17 +67,9 @@ export class HeaderComponent implements OnInit, AfterViewInit {
       .then(() => this.initDocSearch());
   }
 
-  @ViewChild('searchInput')
-  searchInput: ElementRef<HTMLInputElement>;
-
   @HostListener('document:keyup.s', ['$event'])
   onKeyUp(event: KeyboardEvent) {
-    if (
-      this.useDocsearch &&
-      this.searchInput &&
-      this.searchInput.nativeElement &&
-      event.target === document.body
-    ) {
+    if (this.useDocsearch && this.searchInput && this.searchInput.nativeElement && event.target === document.body) {
       this.searchInput.nativeElement.focus();
     }
   }
@@ -108,7 +95,7 @@ export class HeaderComponent implements OnInit, AfterViewInit {
     });
   }
 
-  langChange(language: LangType) {
+  langChange(language: 'en' | 'zh') {
     this.router.navigateByUrl(`${this.i18n.getRealUrl(this.router.url)}/${language}`);
   }
 
@@ -128,5 +115,14 @@ export class HeaderComponent implements OnInit, AfterViewInit {
     if (item.url) {
       this.router.navigateByUrl(item.url);
     }
+  }
+
+  toViaMobile(url: string) {
+    if (url.indexOf('/') === -1) {
+      url = `/${url}/getting-started`;
+    }
+    this.router.navigateByUrl(`${url}/${this.i18n.zone}`).then(() => {
+      this.menuVisible = false;
+    });
   }
 }

@@ -15,7 +15,7 @@ Simplest of usage.
 
 ```ts
 import { Component } from '@angular/core';
-import { SFSchema } from '@delon/form';
+import { SFSchema, SFUploadWidgetSchema } from '@delon/form';
 import { NzMessageService } from 'ng-zorro-antd';
 
 @Component({
@@ -27,16 +27,15 @@ import { NzMessageService } from 'ng-zorro-antd';
 export class DemoComponent {
   schema: SFSchema = {
     properties: {
-      avatar: {
+      file: {
         type: 'string',
-        title: '头像',
+        title: '单个文件',
         enum: [
           {
             uid: -1,
             name: 'xxx.png',
             status: 'done',
-            url:
-              'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
+            url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
             response: {
               resource_id: 1,
             },
@@ -47,7 +46,18 @@ export class DemoComponent {
           action: '/upload',
           resReName: 'resource_id',
           urlReName: 'url',
-        },
+        } as SFUploadWidgetSchema,
+      },
+      mulit: {
+        type: 'string',
+        title: '多个文件',
+        ui: {
+          widget: 'upload',
+          action: '/upload',
+          resReName: 'resource_id',
+          urlReName: 'url',
+          multiple: true,
+        } as SFUploadWidgetSchema,
       },
       // 拖动模式
       drag: {
@@ -59,7 +69,7 @@ export class DemoComponent {
           resReName: 'resource_id',
           urlReName: 'url',
           type: 'drag',
-        },
+        } as SFUploadWidgetSchema,
       },
     },
   };

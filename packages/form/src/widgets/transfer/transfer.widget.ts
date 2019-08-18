@@ -1,38 +1,36 @@
-import { Component, OnInit } from '@angular/core';
-import {
-  TransferCanMove,
-  TransferChange,
-  TransferItem,
-  TransferSearchChange,
-  TransferSelectChange,
-} from 'ng-zorro-antd';
+import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { TransferCanMove, TransferChange, TransferItem, TransferSearchChange, TransferSelectChange } from 'ng-zorro-antd/transfer';
 import { of, Observable } from 'rxjs';
 import { SFValue } from '../../interface';
 import { SFSchemaEnum } from '../../schema';
 import { getData } from '../../utils';
-import { ControlWidget } from '../../widget';
+import { ControlUIWidget } from '../../widget';
+import { SFTransferWidgetSchema } from './schema';
 
 @Component({
   selector: 'sf-transfer',
   templateUrl: './transfer.widget.html',
+  preserveWhitespaces: false,
+  encapsulation: ViewEncapsulation.None,
 })
-export class TransferWidget extends ControlWidget implements OnInit {
+export class TransferWidget extends ControlUIWidget<SFTransferWidgetSchema> implements OnInit {
   list: SFSchemaEnum[] = [];
   i: any;
   private _data: SFSchemaEnum[] = [];
 
   ngOnInit(): void {
+    const { titles, operations, itemUnit, itemsUnit } = this.ui;
     this.i = {
-      titles: this.ui.titles || ['', ''],
-      operations: this.ui.operations || ['', ''],
-      itemUnit: this.ui.itemUnit || '项',
-      itemsUnit: this.ui.itemsUnit || '项',
+      titles: titles || ['', ''],
+      operations: operations || ['', ''],
+      itemUnit: itemUnit || '项',
+      itemsUnit: itemsUnit || '项',
     };
   }
 
   reset(value: SFValue) {
     getData(this.schema, this.ui, null).subscribe(list => {
-      let formData = this.formProperty.formData;
+      let formData = value;
       if (!Array.isArray(formData)) {
         formData = [formData];
       }
@@ -54,7 +52,7 @@ export class TransferWidget extends ControlWidget implements OnInit {
 
   _canMove = (arg: TransferCanMove): Observable<TransferItem[]> => {
     return this.ui.canMove ? this.ui.canMove(arg) : of(arg.list);
-  }
+  };
 
   _change(options: TransferChange) {
     if (options.to === 'right') {
@@ -68,11 +66,11 @@ export class TransferWidget extends ControlWidget implements OnInit {
 
   _searchChange(options: TransferSearchChange) {
     if (this.ui.searchChange) this.ui.searchChange(options);
-    this.cd.detectChanges();
+    this.detectChanges();
   }
 
   _selectChange(options: TransferSelectChange) {
     if (this.ui.selectChange) this.ui.selectChange(options);
-    this.cd.detectChanges();
+    this.detectChanges();
   }
 }

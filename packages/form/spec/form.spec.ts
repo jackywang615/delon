@@ -1,15 +1,16 @@
 import { Component, DebugElement } from '@angular/core';
 import { fakeAsync, tick, ComponentFixture, TestBed, TestBedStatic } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ACLService, DelonACLModule } from '@delon/acl';
 import { configureTestSuite, createTestContext } from '@delon/testing';
-import { en_US, AlainThemeModule, DelonLocaleService } from '@delon/theme';
+import { en_US, AlainThemeModule, DelonLocaleService, ALAIN_I18N_TOKEN, AlainI18NService } from '@delon/theme';
 import { deepCopy } from '@delon/util';
 import { of } from 'rxjs';
-import { FormProperty } from '../src/model/form.property';
 import { FormPropertyFactory } from '../src/model/form.property.factory';
 import { DelonFormModule } from '../src/module';
 import { SFSchema } from '../src/schema/index';
 import { SCHEMA, SFPage, TestFormComponent } from './base.spec';
+import { WidgetRegistry } from '../src/widget.factory';
 
 describe('form: component', () => {
   let injector: TestBedStatic;
@@ -18,12 +19,22 @@ describe('form: component', () => {
   let context: TestFormComponent;
   let page: SFPage;
 
-  configureTestSuite(() => {
-    injector = TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule, AlainThemeModule.forRoot(), DelonFormModule.forRoot()],
-      declarations: [TestFormComponent, TestModeComponent],
+  function genModule(options: { acl?: boolean; i18n?: boolean } = {}) {
+    options = { acl: false, i18n: false, ...options };
+    configureTestSuite(() => {
+      const imports = [NoopAnimationsModule, DelonFormModule.forRoot()];
+      if (options.i18n) {
+        imports.push(AlainThemeModule.forRoot());
+      }
+      if (options.acl) {
+        imports.push(DelonACLModule.forRoot());
+      }
+      injector = TestBed.configureTestingModule({
+        imports,
+        declarations: [TestFormComponent, TestModeComponent],
+      });
     });
-  });
+  }
 
   function createComp() {
     fixture.detectChanges();
@@ -32,6 +43,8 @@ describe('form: component', () => {
   }
 
   describe('', () => {
+    genModule();
+
     beforeEach(() => {
       ({ fixture, dl, context } = createTestContext(TestFormComponent));
       createComp();
@@ -40,9 +53,10 @@ describe('form: component', () => {
     describe('[default]', () => {
       it('should throw error when parent is not object or array', () => {
         expect(() => {
-          const factory = dl.injector.get(FormPropertyFactory);
+          // tslint:disable-next-line: no-string-literal
+          const factory = context.comp['formPropertyFactory'] as FormPropertyFactory;
           factory.createProperty({}, {}, {}, { type: 'invalid', path: 'a' } as any, 'a');
-        }).toThrowError();
+        }).toThrowError(`Instanciation of a FormProperty with an unknown parent type: invalid`);
       });
 
       it('should throw error when type is invalid', () => {
@@ -126,6 +140,32 @@ describe('form: component', () => {
         fixture.detectChanges();
         expect(console.warn).toHaveBeenCalled();
       });
+
+      it('should be ingore required when element is hidden', () => {
+        const s: SFSchema = {
+          properties: {
+            name: {
+              type: 'string',
+              ui: { hidden: true },
+            },
+          },
+          required: ['name'],
+        };
+        page.newSchema(s);
+        expect(context.comp._schema.required!.indexOf('name') === -1).toBe(true);
+      });
+
+      it('should be ingore trigger formChange event when call refreshSchema method', () => {
+        expect(context.formChange).not.toHaveBeenCalled();
+        page.newSchema({ properties: { name: { type: 'string' } } });
+        expect(context.formChange).not.toHaveBeenCalled();
+      });
+
+      it('should be hava values when call refreshSchema method after', () => {
+        page.newSchema({ properties: { name: { type: 'string', default: 'a' } } });
+        expect(context.formChange).not.toHaveBeenCalled();
+        expect(context.comp.value.name).toBe('a');
+      });
     });
 
     describe('[button]', () => {
@@ -146,6 +186,19 @@ describe('form: component', () => {
         context.button = 'none';
         fixture.detectChanges();
         page.checkCount('.sf-btns', 0);
+      });
+      it('should be icon', () => {
+        context.button = {
+          submit_icon: {
+            type: 'search',
+          },
+          reset_icon: {
+            type: 'file',
+          },
+        };
+        fixture.detectChanges();
+        page.checkCount('[type="submit"] .anticon', 1);
+        page.checkCount('[type="button"] .anticon', 1);
       });
       describe('when layout is horizontal', () => {
         it('should be has a fix 100px width', () => {
@@ -180,11 +233,7 @@ describe('form: component', () => {
             },
           };
           fixture.detectChanges();
-          page.checkStyle(
-            '.sf-btns .ant-form-item-control-wrapper',
-            'margin-left',
-            `${spanLabelFixed}px`,
-          );
+          page.checkStyle('.sf-btns .ant-form-item-control-wrapper', 'margin-left', `${spanLabelFixed}px`);
         });
       });
       describe('#size', () => {
@@ -201,7 +250,7 @@ describe('form: component', () => {
       });
       it('should be update button text when i18n changed', () => {
         page.checkElText('.ant-btn-primary', '提交');
-        const i18n = injector.get(DelonLocaleService) as DelonLocaleService;
+        const i18n = injector.get<DelonLocaleService>(DelonLocaleService) as DelonLocaleService;
         i18n.setLocale(en_US);
         fixture.detectChanges();
         page.checkElText('.ant-btn-primary', 'Submit');
@@ -238,7 +287,7 @@ describe('form: component', () => {
       describe('#reset', () => {
         it('should be set default value', () => {
           const schema = deepCopy(SCHEMA.user) as SFSchema;
-          schema.properties.name.default = 'cipchk';
+          schema.properties!.name.default = 'cipchk';
           page
             .newSchema(schema)
             .reset()
@@ -301,12 +350,12 @@ describe('form: component', () => {
         it('with false', () => {
           context.firstVisual = false;
           fixture.detectChanges();
-          page.checkCount('nz-form-explain', 0);
+          page.checkCount('.ant-form-explain', 0);
         });
         it('with true', () => {
           context.firstVisual = true;
           fixture.detectChanges();
-          page.checkCount('nz-form-explain', 2);
+          page.checkCount('.ant-form-explain', 2);
         });
       });
 
@@ -315,14 +364,64 @@ describe('form: component', () => {
           context.onlyVisual = false;
           fixture.detectChanges();
           page.checkCount('.sf__no-error', 0);
-          page.checkCount('nz-form-explain', 2);
+          page.checkCount('.ant-form-explain', 2);
         });
         it('with true', () => {
           context.onlyVisual = true;
           fixture.detectChanges();
           page.checkCount('.sf__no-error', 1);
-          page.checkCount('nz-form-explain', 0);
+          page.checkCount('.ant-form-explain', 0);
         });
+      });
+
+      it('#disabled', () => {
+        const CLS = {
+          input: '.ant-input[disabled]',
+          number: '.ant-input-number-disabled',
+          switch: '.ant-switch-disabled',
+          select: [['.ant-select-enabled', 1], ['.ant-select-disabled', 1]],
+        };
+        page.newSchema({
+          properties: {
+            ipt: { type: 'string' },
+            number: { type: 'number' },
+            switch: { type: 'boolean' },
+            select: { type: 'string', enum: ['A'] },
+          },
+        });
+        context.disabled = false;
+        fixture.detectChanges();
+        Object.keys(CLS).forEach(key => {
+          if (Array.isArray(CLS[key])) {
+            page.checkCount(CLS[key][0][0], CLS[key][0][1]);
+          } else {
+            page.checkCount(CLS[key], 0);
+          }
+        });
+        context.disabled = true;
+        fixture.detectChanges();
+        Object.keys(CLS).forEach(key => {
+          if (Array.isArray(CLS[key])) {
+            page.checkCount(CLS[key][1][0], CLS[key][1][1]);
+          } else {
+            page.checkCount(CLS[key], 1);
+          }
+        });
+      });
+
+      it('#loading', () => {
+        context.loading = false;
+        fixture.detectChanges();
+        const CLS = {
+          loading: '.ant-btn-primary.ant-btn-loading',
+          disabled: '.ant-btn-default[disabled]',
+        };
+        page.checkCount(CLS.loading, 0);
+        page.checkCount(CLS.disabled, 0);
+        context.loading = true;
+        fixture.detectChanges();
+        page.checkCount(CLS.loading, 1);
+        page.checkCount(CLS.disabled, 1);
       });
 
       it('#formChange', () => {
@@ -361,9 +460,7 @@ describe('form: component', () => {
           .checkCls('input', 'ant-input-lg');
       });
       it('#disabled', fakeAsync(() => {
-        const el = page
-          .newSchema({ properties: { name: { type: 'string', readOnly: true } } })
-          .getEl('input') as HTMLInputElement;
+        const el = page.newSchema({ properties: { name: { type: 'string', readOnly: true } } }).getEl('input') as HTMLInputElement;
         tick();
         expect(el.disabled).toBe(true);
         expect(el.classList).toContain('ant-input-disabled');
@@ -375,6 +472,10 @@ describe('form: component', () => {
           })
           .checkCls('sf-string', 'test-cls');
       });
+      it('should get all registered widgets', () => {
+        const wr = injector.get(WidgetRegistry) as WidgetRegistry;
+        expect(Object.keys(wr.widgets).length).toBeGreaterThan(0);
+      });
     });
 
     describe('public methods', () => {
@@ -383,7 +484,7 @@ describe('form: component', () => {
       });
       it('#getValue', () => {
         const name = 'asdf';
-        page.newSchema({ properties: { name: { type: 'string' } } }, null, { name });
+        page.newSchema({ properties: { name: { type: 'string' } } }, null!, { name });
         expect(context.comp.getValue('/name')).toBe(name);
       });
       it('#setValue', () => {
@@ -405,9 +506,7 @@ describe('form: component', () => {
             a: {
               type: 'string',
               ui: {
-                validator: jasmine
-                  .createSpy()
-                  .and.returnValue([{ keyword: 'required', message: 'a' }]),
+                validator: jasmine.createSpy().and.returnValue([{ keyword: 'required', message: 'a' }]),
               },
             },
           },
@@ -421,9 +520,7 @@ describe('form: component', () => {
             a: {
               type: 'string',
               ui: {
-                validator: jasmine
-                  .createSpy()
-                  .and.returnValue([]),
+                validator: jasmine.createSpy().and.returnValue([]),
               },
             },
           },
@@ -437,9 +534,7 @@ describe('form: component', () => {
             a: {
               type: 'string',
               ui: {
-                validator: jasmine
-                  .createSpy()
-                  .and.returnValue(of([{ keyword: 'required', message: 'a' }])),
+                validator: jasmine.createSpy().and.returnValue(of([{ keyword: 'required', message: 'a' }])),
               },
             },
           },
@@ -454,9 +549,7 @@ describe('form: component', () => {
               a: {
                 type: 'string',
                 ui: {
-                  validator: jasmine
-                    .createSpy()
-                    .and.returnValue([{ keyword: 'required' }]),
+                  validator: jasmine.createSpy().and.returnValue([{ keyword: 'required' }]),
                 },
               },
             },
@@ -470,19 +563,21 @@ describe('form: component', () => {
             a: {
               type: 'string',
               ui: {
-                validator: () => [{
-                  keyword: 'a',
-                  message: 'a-{id}-{invalid}',
-                  params: {
-                    id: 10,
+                validator: () => [
+                  {
+                    keyword: 'a',
+                    message: 'a-{id}-{invalid}',
+                    params: {
+                      id: 10,
+                    },
                   },
-                }],
+                ],
               },
             },
           },
         };
         page.newSchema(s);
-        expect(page.getProperty('/a').errors[0].message).toBe(`a-10-`);
+        expect(page.getProperty('/a').errors![0].message).toBe(`a-10-`);
       });
     });
 
@@ -502,7 +597,7 @@ describe('form: component', () => {
           required: ['a'],
         };
         page.newSchema(s);
-        expect(page.getProperty('/a').errors[0].message).toBe('REQUEST');
+        expect(page.getProperty('/a').errors![0].message).toBe('REQUEST');
       });
 
       it('shoule be re-error message via error property and type is function', () => {
@@ -520,23 +615,55 @@ describe('form: component', () => {
           required: ['a'],
         };
         page.newSchema(s);
-        expect(page.getProperty('/a').errors[0].message).toBe('A');
-        expect((s.properties.a.ui as any).errors.required).toHaveBeenCalled();
+        expect(page.getProperty('/a').errors![0].message).toBe('A');
+        expect((s.properties!.a.ui as any).errors.required).toHaveBeenCalled();
+      });
+
+      it('should be i18n', () => {
+        const s: SFSchema = {
+          properties: {
+            a: {
+              type: 'string',
+            },
+            arr: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: {
+                    type: 'string',
+                  },
+                },
+                required: ['name'],
+              },
+            },
+          },
+          required: ['a'],
+        };
+        page.newSchema(s, undefined, { a: '', arr: [{ name: '' }] });
+        expect(page.getProperty('/a').errors![0].message).toBe(context.comp.locale.error.required);
+        const i18n = injector.get<DelonLocaleService>(DelonLocaleService) as DelonLocaleService;
+        i18n.setLocale(en_US);
+        fixture.detectChanges();
+        expect(page.getProperty('/a').errors![0].message).toBe(context.comp.locale.error.required);
+        expect(page.getProperty('/arr').errors![0].message).toBe(context.comp.locale.error.required);
       });
     });
   });
 
   describe('#mode', () => {
+    genModule();
+
     beforeEach(() => ({ fixture, dl, context } = createTestContext(TestModeComponent)));
     it('should be auto 搜索 in submit', () => {
       context.mode = 'search';
       createComp();
-      expect(page.getEl('.ant-btn-primary').textContent).toBe('搜索');
+      expect(page.getEl('.ant-btn-primary').textContent).toContain('搜索');
     });
     it('should be auto 保存 in submit', () => {
       context.mode = 'edit';
       createComp();
-      expect(page.getEl('.ant-btn-primary').textContent).toBe('保存');
+      expect(page.getEl('.ant-btn-primary').textContent).toContain('保存');
     });
     it('should be custom text of search', () => {
       context.mode = 'search';
@@ -544,7 +671,7 @@ describe('form: component', () => {
         search: 'SEARCH',
       };
       createComp();
-      expect(page.getEl('.ant-btn-primary').textContent).toBe('SEARCH');
+      expect(page.getEl('.ant-btn-primary').textContent).toContain('SEARCH');
     });
     it('should be custom text of edit', () => {
       context.mode = 'edit';
@@ -552,14 +679,93 @@ describe('form: component', () => {
         edit: 'SAVE',
       };
       createComp();
-      expect(page.getEl('.ant-btn-primary').textContent).toBe('SAVE');
+      expect(page.getEl('.ant-btn-primary').textContent).toContain('SAVE');
     });
+  });
+
+  describe('ACL', () => {
+    genModule({ acl: true });
+
+    it('should working', fakeAsync(() => {
+      ({ fixture, dl, context } = createTestContext(TestFormComponent));
+      createComp();
+      const acl = injector.get<ACLService>(ACLService);
+      acl.setFull(false);
+      acl.setRole(['admin']);
+      const s: SFSchema = {
+        properties: {
+          a: {
+            type: 'string',
+            ui: {
+              acl: 'admin',
+            },
+          },
+        },
+        required: ['a'],
+      };
+      page.newSchema(s);
+      page.checkUI('/a', 'hidden', false);
+      acl.setRole(['user']);
+      tick();
+      fixture.detectChanges();
+      page.checkUI('/a', 'hidden', true);
+    }));
+  });
+
+  describe('I18N', () => {
+    genModule({ i18n: true });
+
+    it('should working', fakeAsync(() => {
+      ({ fixture, dl, context } = createTestContext(TestFormComponent));
+      createComp();
+      const i18n = injector.get(ALAIN_I18N_TOKEN) as AlainI18NService;
+      let lang = 'en';
+      spyOn(i18n, 'fanyi').and.callFake(((key: string) => {
+        if (key === 'null') return null;
+        return lang === 'en' ? key : `zh-${key}`;
+      }) as any);
+      const s: SFSchema = {
+        properties: {
+          a: {
+            type: 'string',
+            title: 'title',
+            description: 'title',
+            ui: {
+              i18n: 'i18n',
+              descriptionI18n: 'descriptionI18n',
+              optionalHelp: {
+                i18n: 'ohi18n',
+              },
+            },
+          },
+          b: {
+            type: 'string',
+            title: 'a',
+            ui: {
+              i18n: 'null',
+            },
+          },
+        },
+      };
+      page.newSchema(s);
+      page
+        .checkSchema('/a', 'title', 'i18n')
+        .checkSchema('/b', 'title', 'null')
+        .checkSchema('/a', 'description', 'descriptionI18n')
+        .checkUI('/a', 'optionalHelp.text', 'ohi18n');
+      lang = 'zh';
+      i18n.use(lang);
+      page
+        .checkSchema('/a', 'title', 'zh-i18n')
+        .checkSchema('/a', 'description', 'zh-descriptionI18n')
+        .checkUI('/a', 'optionalHelp.text', 'zh-ohi18n');
+    }));
   });
 });
 
 @Component({
   template: `
-    <sf [layout]="layout" #comp [schema]="schema" [ui]="ui" [button]="button" [mode]="mode"></sf>
+    <sf [layout]="layout" #comp [schema]="schema" [ui]="ui" [button]="button" [mode]="mode" [loading]="loading"></sf>
   `,
 })
 class TestModeComponent extends TestFormComponent {}

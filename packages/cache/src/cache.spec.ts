@@ -2,7 +2,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { TestBed, TestBedStatic } from '@angular/core/testing';
 import { of, Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
-
+import { Type } from '@angular/core';
 import { AlainThemeModule } from '@delon/theme';
 
 import { DelonCacheModule } from './cache.module';
@@ -14,24 +14,22 @@ describe('cache: service', () => {
   let srv: CacheService;
   const KEY = 'a';
 
+  function getHTC(): HttpTestingController {
+    return injector.get(HttpTestingController as Type<HttpTestingController>);
+  }
+
   beforeEach(() => {
     let data: any = {};
 
-    spyOn(localStorage, 'getItem').and.callFake(
-      (key: string): string => {
-        return data[key] || null;
-      },
-    );
-    spyOn(localStorage, 'removeItem').and.callFake(
-      (key: string): void => {
-        delete data[key];
-      },
-    );
-    spyOn(localStorage, 'setItem').and.callFake(
-      (key: string, value: string): string => {
-        return (data[key] = value as string);
-      },
-    );
+    spyOn(localStorage, 'getItem').and.callFake((key: string): string => {
+      return data[key] || null;
+    });
+    spyOn(localStorage, 'removeItem').and.callFake((key: string): void => {
+      delete data[key];
+    });
+    spyOn(localStorage, 'setItem').and.callFake((key: string, value: string): string => {
+      return (data[key] = value as string);
+    });
     spyOn(localStorage, 'clear').and.callFake(() => {
       data = {};
     });
@@ -43,7 +41,7 @@ describe('cache: service', () => {
       providers: [],
     });
 
-    srv = injector.get(CacheService);
+    srv = injector.get<CacheService>(CacheService);
   }
 
   describe('[property]', () => {
@@ -78,7 +76,7 @@ describe('cache: service', () => {
         srv.set(KEY, 'a', { type: 's' });
         expect(localStorage.setItem).toHaveBeenCalled();
         expect(srv.has(KEY)).toBe(true);
-        const meta = JSON.parse(localStorage.getItem('__cache_meta')) as ICache;
+        const meta = JSON.parse(localStorage.getItem('__cache_meta')!) as ICache;
         expect(meta).not.toBeNaN();
         expect(meta.v.indexOf(KEY)).not.toBe(-1);
       });
@@ -89,7 +87,7 @@ describe('cache: service', () => {
       it('should be set string and expires vis storage', () => {
         srv.set(KEY, 'a', { type: 's', expire: 10 });
         expect(localStorage.setItem).toHaveBeenCalled();
-        const org = JSON.parse(localStorage.getItem(KEY)) as ICache;
+        const org = JSON.parse(localStorage.getItem(KEY)!) as ICache;
         expect(org.e).toBeGreaterThan(1000);
       });
       it('should be overwirte key', () => {
@@ -132,21 +130,19 @@ describe('cache: service', () => {
           expect(srv.getNone(k)).toBe('ok!');
           done();
         });
-        injector
-          .get(HttpTestingController)
+        getHTC()
           .expectOne(k)
           .flush('ok!');
       });
       it('should be specify sotre type via promise mode', (done: () => void) => {
         const k = '/data/1';
         const setSpy = spyOn(srv, 'set');
-        srv.get(k, { mode: 'promise', type: 'm' }).subscribe(res => {
+        srv.get(k, { mode: 'promise', type: 'm' }).subscribe(() => {
           const data = setSpy.calls.mostRecent().args[2];
           expect(data.type).toBe('m');
           done();
         });
-        injector
-          .get(HttpTestingController)
+        getHTC()
           .expectOne(k)
           .flush('ok!');
       });
@@ -155,8 +151,7 @@ describe('cache: service', () => {
         const firstGet = srv.get(url);
         expect(firstGet instanceof Observable).toBe(true);
         firstGet.subscribe();
-        injector
-          .get(HttpTestingController)
+        getHTC()
           .expectOne(url)
           .flush('ok!');
         const secondGet = srv.get(url);

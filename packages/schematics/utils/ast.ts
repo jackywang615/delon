@@ -1,11 +1,6 @@
 import { SchematicsException, Tree } from '@angular-devkit/schematics';
 import { getDecoratorMetadata } from '@schematics/angular/utility/ast-utils';
-import {
-  Change,
-  InsertChange,
-  RemoveChange,
-  ReplaceChange,
-} from '@schematics/angular/utility/change';
+import { Change, InsertChange, RemoveChange, ReplaceChange } from '@schematics/angular/utility/change';
 import * as ts from 'typescript';
 
 /** Reads file given path and returns TypeScript source file. */
@@ -62,9 +57,9 @@ export function updateComponentMetadata(
 
   const directiveMetadata = nodes[0] as ts.ObjectLiteralExpression;
 
-  let changes = [];
+  let changes: Change[] = [];
   if (propertyName) {
-    const property = directiveMetadata.properties.find(p => p.name.getText() === propertyName);
+    const property = directiveMetadata.properties.find(p => p.name!.getText() === propertyName);
     if (property) changes = callback(property as ts.Node);
   } else {
     changes = callback(directiveMetadata);

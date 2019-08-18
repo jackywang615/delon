@@ -5,11 +5,18 @@ export function getJSON(host: Tree, jsonFile: string, type?: string): any {
   if (!host.exists(jsonFile)) return null;
 
   const sourceText = host.read(jsonFile)!.toString('utf-8');
-  const json = JSON.parse(sourceText);
-  if (type && !json[type]) {
-    json[type] = {};
+  try {
+    const json = JSON.parse(sourceText);
+    if (type && !json[type]) {
+      json[type] = {};
+    }
+    return json;
+  } catch (ex) {
+    console.log(
+      `Can't parse json file (${jsonFile}), pls check for comments or trailing commas, or validate json via https://jsonlint.com/`,
+    );
+    throw ex;
   }
-  return json;
 }
 
 export function overwriteJSON(host: Tree, jsonFile: string, json: any) {
@@ -35,7 +42,7 @@ export function overwritePackage(host: Tree, json: any) {
 export function addPackageToPackageJson(
   host: Tree,
   pkg: string | string[],
-  type = 'dependencies',
+  type: 'dependencies' | 'devDependencies' | 'scripts' = 'dependencies',
 ): Tree {
   const json = getJSON(host, 'package.json', type);
   if (json == null) return host;
@@ -63,7 +70,7 @@ export function addPackageToPackageJson(
 export function removePackageFromPackageJson(
   host: Tree,
   pkg: string | string[],
-  type = 'dependencies',
+  type: 'dependencies' | 'devDependencies' | 'scripts' = 'dependencies',
 ): Tree {
   const json = getJSON(host, 'package.json', type);
   if (json == null) return host;
@@ -94,8 +101,8 @@ export function scriptsToAngularJson(
   const json = getAngular(host);
   const project = getProjectFromWorkspace(json, projectName);
   types.forEach(type => {
-    const scriptsNode = (project.targets || project.architect)[type]!.options!.scripts as string[];
-    const stylesNode = (project.targets || project.architect)[type]!.options!.styles as string[];
+    const scriptsNode = (project.targets || project.architect)![type]!.options!.scripts as string[];
+    const stylesNode = (project.targets || project.architect)![type]!.options!.styles as string[];
     for (const path of resources) {
       const list = path.endsWith('.js') ? scriptsNode : stylesNode;
       if (clean === true) list.length = 0;

@@ -8,7 +8,7 @@ import extend from 'extend';
  * @param path 若 `null`、`[]`、未定义及未找到时返回 `defaultValue` 值
  * @param defaultValue 默认值
  */
-export function deepGet(obj: any, path: string | string[], defaultValue?: any): any {
+export function deepGet(obj: any | null, path: string | string[] | null | undefined, defaultValue?: any): any {
   if (!obj || path == null || path.length === 0) return defaultValue;
   if (!Array.isArray(path)) {
     path = ~path.indexOf('.') ? path.split('.') : [path];
@@ -28,26 +28,24 @@ export function deepCopy(obj: any): any {
 
 /** 复制内容至剪贴板 */
 export function copy(value: string): Promise<string> {
-  return new Promise<string>(
-    (resolve, reject): void => {
-      let copyTextArea = null as HTMLTextAreaElement;
-      try {
-        copyTextArea = document.createElement('textarea');
-        copyTextArea.style.height = '0px';
-        copyTextArea.style.opacity = '0';
-        copyTextArea.style.width = '0px';
-        document.body.appendChild(copyTextArea);
-        copyTextArea.value = value;
-        copyTextArea.select();
-        document.execCommand('copy');
-        resolve(value);
-      } finally {
-        if (copyTextArea && copyTextArea.parentNode) {
-          copyTextArea.parentNode.removeChild(copyTextArea);
-        }
+  return new Promise<string>((resolve): void => {
+    let copyTextArea: HTMLTextAreaElement | null = null;
+    try {
+      copyTextArea = document.createElement('textarea');
+      copyTextArea.style.height = '0px';
+      copyTextArea.style.opacity = '0';
+      copyTextArea.style.width = '0px';
+      document.body.appendChild(copyTextArea);
+      copyTextArea.value = value;
+      copyTextArea.select();
+      document.execCommand('copy');
+      resolve(value);
+    } finally {
+      if (copyTextArea && copyTextArea.parentNode) {
+        copyTextArea.parentNode.removeChild(copyTextArea);
       }
-    },
-  );
+    }
+  });
 }
 
 export function deepMergeKey(original: any, ingoreArray: boolean, ...objects: any[]): any {
@@ -61,14 +59,9 @@ export function deepMergeKey(original: any, ingoreArray: boolean, ...objects: an
       .forEach(key => {
         const oldValue = obj[key];
         const newValue = target[key];
-        if (!ingoreArray && Array.isArray(newValue)) {
-          target[key] = [...newValue, ...oldValue];
-        } else if (
-          oldValue != null &&
-          isObject(oldValue) &&
-          newValue != null &&
-          isObject(newValue)
-        ) {
+        if (Array.isArray(newValue)) {
+          target[key] = ingoreArray ? oldValue : [...newValue, ...oldValue];
+        } else if (oldValue != null && isObject(oldValue) && newValue != null && isObject(newValue)) {
           target[key] = merge(newValue, oldValue);
         } else {
           target[key] = deepCopy(oldValue);
@@ -77,7 +70,7 @@ export function deepMergeKey(original: any, ingoreArray: boolean, ...objects: an
     return target;
   };
 
-  objects.filter(v => isObject(v)).forEach(v => merge(original, v));
+  objects.filter(v => v != null && isObject(v)).forEach(v => merge(original, v));
 
   return original;
 }

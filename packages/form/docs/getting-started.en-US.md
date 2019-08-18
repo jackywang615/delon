@@ -129,9 +129,7 @@ export class HomeComponent {
     }
   };
 
-  submit(value: any) {
-
-  }
+  submit(value: any) { }
 }
 ```
 
@@ -150,6 +148,8 @@ export class HomeComponent {
 | `[firstVisual]`  | Whether to show visual error immediately | `boolean`                    | `true`       |
 | `[liveValidate]` | Whether to live validate                 | `boolean`                    | `true`       |
 | `[autocomplete]` | autocomplete value of this form          | `on,off`                     | `null`       |
+| `[disabled]` | Whether to disabled status  | `boolean` | `false` |
+| `[loading]` | Whether to load status，when `true` reset button is disabled status, submit button is loading status  | `boolean` | `false` |
 | `(formChange)`   | Callback when data changes               | `EventEmitter<{}>`           | -            |
 | `(formSubmit)`   | Callback when submitting the form        | `EventEmitter<{}>`           | -            |
 | `(formReset)`    | Callback when resetting the form         | `EventEmitter<{}>`           | -            |
@@ -161,8 +161,10 @@ export class HomeComponent {
 |-----------------|-----------------------|------------------|-----------|
 | `[submit]`      | Submit text of button | `string`         | `提交`    |
 | `[submit_type]` | Submit type of button | `string`         | `primary` |
+| `[submit_icon]` | Submit icon of button | `SFButtonIcon` | - |
 | `[reset]`       | Reset text of button  | `string`         | `重置`    |
 | `[reset_type]`  | Reset type of button  | `string`         | `default` |
+| `[reset_icon]` | Reset icon of button | `SFButtonIcon` | - |
 | `[search]`      | Search text of button | `string`         | `搜索`    |
 | `[edit]`        | Edit text of button   | `string`         | `保存`    |
 | `[render]`      | Button layout         | `SFRenderButton` | -         |
@@ -180,7 +182,7 @@ export class HomeComponent {
 | `getValue`      | Get value via path                                          | `any`          |
 | `setValue`      | Set value via path, shoudl be throw error when invalid path | `this`         |
 
-> **Note:** All paths are separated by `/`, for example: `/user/name`.
+> **Note:** All paths are separated by `/`, for example: `/user/name`, `/arr/0/name`.
 
 ### Button
 

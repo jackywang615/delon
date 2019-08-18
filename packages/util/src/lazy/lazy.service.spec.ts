@@ -23,7 +23,7 @@ class MockDocument {
         },
       },
     ];
-  }
+  };
   createElement = () => {
     const ret: any = {
       testStatus,
@@ -31,7 +31,7 @@ class MockDocument {
     };
     if (isIE) ret.readyState = 'loading';
     return ret;
-  }
+  };
 }
 
 describe('utils: lazy', () => {
@@ -59,7 +59,7 @@ describe('utils: lazy', () => {
     });
     it('should be load a js resource unit stauts is complete', (done: () => void) => {
       isIE = true;
-      spyOn(doc, 'getElementsByTagName').and.callFake(data => {
+      const mockGetElementsByTagName = () => {
         const mockObj = new MockDocument().getElementsByTagName();
         mockObj[0].appendChild = node => {
           node.readyState = 'mock-status';
@@ -68,7 +68,9 @@ describe('utils: lazy', () => {
           node.onreadystatechange();
         };
         return mockObj;
-      });
+      };
+      // tslint:disable-next-line: unnecessary-bind
+      spyOn(doc, 'getElementsByTagName').and.callFake(mockGetElementsByTagName.bind(this));
       srv.change.subscribe(res => {
         expect(res[0].status).toBe('ok');
         done();
@@ -118,7 +120,7 @@ describe('utils: lazy', () => {
 
   it('should be immediately when loaded a js resource', () => {
     let count = 0;
-    spyOn(doc, 'createElement').and.callFake(data => {
+    spyOn(doc, 'createElement').and.callFake(() => {
       ++count;
       return new MockDocument().createElement();
     });
@@ -130,7 +132,7 @@ describe('utils: lazy', () => {
 
   it('should be immediately when loaded a css resource', () => {
     let count = 0;
-    spyOn(doc, 'createElement').and.callFake(data => {
+    spyOn(doc, 'createElement').and.callFake(() => {
       ++count;
       return new MockDocument().createElement();
     });

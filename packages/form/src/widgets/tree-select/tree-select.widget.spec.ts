@@ -47,6 +47,30 @@ describe('form: widget: tree-select', () => {
       .asyncEnd(1000);
   }));
 
+  it('#setValue', fakeAsync(() => {
+    const s: SFSchema = {
+      properties: {
+        a: {
+          type: 'string',
+          title: '基本',
+          enum: [
+            { title: '待支付', key: 'WAIT_BUYER_PAY' },
+            { title: '已支付', key: 'TRADE_SUCCESS' },
+            { title: '交易完成', key: 'TRADE_FINISHED' },
+          ],
+          default: 'TRADE_SUCCESS',
+          ui: {
+            widget,
+          },
+        },
+      },
+    };
+    page.newSchema(s).dc(1);
+    expect(page.getEl('.ant-select-selection-selected-value').textContent!.trim()).toContain('已支付');
+    page.setValue('/a', 'TRADE_FINISHED').dc(1);
+    expect(page.getEl('.ant-select-selection-selected-value').textContent!.trim()).toContain('交易完成');
+  }));
+
   it('#change', fakeAsync(() => {
     const s: SFSchema = {
       properties: {
@@ -72,7 +96,7 @@ describe('form: widget: tree-select', () => {
       .typeEvent('click', 'nz-tree-node:nth-child(2)')
       .checkValue('a', 'TRADE_SUCCESS')
       .asyncEnd(1000);
-    expect((s.properties.a.ui as any).change).toHaveBeenCalled();
+    expect((s.properties!.a.ui as any).change).toHaveBeenCalled();
   }));
 
   it('#expandChange', fakeAsync(() => {
@@ -101,7 +125,6 @@ describe('form: widget: tree-select', () => {
       .typeEvent('click', 'nz-tree-node:nth-child(2)')
       .checkValue('a', 'TRADE_SUCCESS')
       .asyncEnd(1000);
-    expect((s.properties.a.ui as any).expandChange).toHaveBeenCalled();
+    expect((s.properties!.a.ui as any).expandChange).toHaveBeenCalled();
   }));
-
 });

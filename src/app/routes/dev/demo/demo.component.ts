@@ -1,38 +1,44 @@
 import { Component } from '@angular/core';
 import { SFSchema } from '@delon/form';
 import { NzMessageService } from 'ng-zorro-antd';
+import { of } from 'rxjs';
+import { delay } from 'rxjs/operators';
 
 @Component({
   selector: 'app-demo',
   template: `
-  <h1>sf</h1>
-  <sf [schema]="schema" (formSubmit)="submit($event)"></sf>
+    <sf [schema]="schema" (formSubmit)="submit($event)"></sf>
   `,
 })
-export class DemoComponent  {
-  // @delon/form
+export class DemoComponent {
   schema: SFSchema = {
-    definitions: {
-      nameRef: {
-        type: 'string',
-        title: 'nameRef',
-      },
-    },
     properties: {
-      name: {
+      btn: {
         type: 'string',
-        title: 'Name',
+        title: 'Button',
+        enum: ['A', 'B', 'C'],
         ui: {
-          addOnAfter: 'RMB',
-          placeholder: 'RMB结算',
+          widget: 'radio',
+          styleType: 'button',
+          buttonStyle: 'solid',
         },
+        default: 'A',
       },
-      nameTwo: {
-        '$ref': '#/definitions/nameRef',
+      // 异步数据
+      async: {
+        type: 'string',
+        title: 'Async',
+        ui: {
+          widget: 'radio',
+          asyncData: () => of([{ label: '男', value: 'M' }, { label: '女', value: 'F' }, { label: '未知', value: 'N' }]).pipe(delay(100)),
+          change: console.log,
+        },
+        default: 'N',
       },
     },
-    required: ['name', 'nameTwo'],
   };
-  constructor(public msg: NzMessageService) { }
-  submit(value: any) { this.msg.success(JSON.stringify(value)); }
+  constructor(public msg: NzMessageService) {}
+  submit(value: any) {
+    this.msg.success(JSON.stringify(value));
+  }
 }

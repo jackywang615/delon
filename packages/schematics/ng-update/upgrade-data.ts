@@ -66,6 +66,10 @@ export function getAllChanges<T>(data: VersionChanges<T>): T[] {
 export function getUpgradeDataFromWalker<
   T extends keyof RuleUpgradeData,
   U = ValueOfChanges<RuleUpgradeData[T]>
->(walker: RuleWalker, dataName: T): U[] {
+>(
+  // tslint:disable-next-line: deprecation
+  walker: RuleWalker,
+  dataName: T,
+): U[] {
   return getChangesForTarget<U>(walker.getOptions()[0], walker.getOptions()[1][dataName]);
 }

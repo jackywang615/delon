@@ -55,18 +55,23 @@ DEPENDENCIES=$(node -p "
     '@ngx-translate/http-loader',
     'tslint-config-prettier',
     'tslint-language-service',
-    'editorconfig-tools',
     'lint-staged',
     'husky',
-    'prettier',
     'prettier-stylelint',
-    'stylelint',
+    'stylelint-config-prettier',
+    'stylelint-config-rational-order',
     'stylelint-config-standard',
+    'stylelint-declaration-block-no-ignored-properties',
+    'stylelint-order',
+    'stylelint',
+    'prettier',
     '@antv/data-set',
     '@antv/g2',
     '@antv/g2-plugin-slider',
     '@angularclass/hmr',
-    'ng-alain-codelyzer'
+    'ng-alain-codelyzer',
+    'ng-alain-sts',
+    'antd-theme-generator'
   ].map(key => key.replace(/\//g, '\\\\/').replace(/-/g, '\\\\-') + '|' + (vs[key] || dvs[key])).join('\n\t');
 ")
 ZORROVERSION=$(node -p "require('./package.json').dependencies['ng-zorro-antd']")
@@ -113,6 +118,8 @@ copyFiles() {
     "${1}.prettierignore|${2}application/files/root/__dot__prettierignore"
     "${1}.prettierrc|${2}application/files/root/__dot__prettierrc"
     "${1}.stylelintrc|${2}application/files/root/__dot__stylelintrc"
+    "${1}tslint.json|${2}application/files/root"
+    "${1}proxy.conf.json|${2}application/files/root"
     # cli
     # "${1}_cli-tpl|${2}application/files/root/"
     # ci
@@ -150,7 +157,8 @@ copyFiles() {
     "${1}src/app/app.component.ts|${2}application/files/src/app/"
     # layout
     "${1}src/app/layout/fullscreen|${2}application/files/src/app/layout/"
-    "${1}src/app/layout/passport|${2}application/files/src/app/layout/"
+    "${1}src/app/layout/passport/passport.component.less|${2}application/files/src/app/layout/passport/"
+    "${1}src/app/layout/passport/passport.component.ts|${2}application/files/src/app/layout/passport/"
     "${1}src/app/layout/default/setting-drawer|${2}application/files/src/app/layout/default/"
     "${1}src/app/layout/default/default.component.html|${2}application/files/src/app/layout/default/"
     "${1}src/app/layout/default/default.component.ts|${2}application/files/src/app/layout/default/"
@@ -248,41 +256,41 @@ integrationCli() {
   echo ">>> Running npm run icon"
   npm run icon
   echo ">>> Running build"
-  ng build --prod --build-optimizer
+  node --max_old_space_size=5120 ./node_modules/@angular/cli/bin/ng build --prod
   cd ../../
   echo ">>> Current dir: ${PWD}"
 }
 
 if [[ ${BUILD} == true ]]; then
   travisFoldStart "BUILD"
-  
+
     tsconfigFile=${SOURCE}/tsconfig.json
     DIST=${PWD}/dist/ng-alain/
     buildCLI
-  
+
   travisFoldEnd "BUILD"
 fi
 
 if [[ ${TEST} == true ]]; then
   travisFoldStart "TEST"
-  
+
     tsconfigFile=${SOURCE}/tsconfig.spec.json
     DIST=${PWD}/dist/schematics-test/
     buildCLI
     $JASMINE "${DIST}/**/*.spec.js"
-  
+
   travisFoldEnd "TEST"
 fi
 
 if [[ ${INTEGRATION} == true ]]; then
   travisFoldStart "INTEGRATION"
-  
+
     tsconfigFile=${SOURCE}/tsconfig.json
     DIST=${PWD}/dist/ng-alain/
     COPY=true
     buildCLI
     integrationCli
-  
+
   travisFoldEnd "INTEGRATION"
 fi
 
@@ -291,11 +299,11 @@ echo "Finished!!"
 # TODO: just only cipchk
 # clear | bash ./scripts/ci/build-schematics.sh -b -t
 # clear | bash ./scripts/ci/build-schematics.sh -b -copy
-# clear | bash ./scripts/ci/build-schematics.sh -b -copy -debug -dev
+# clear | bash ./scripts/ci/build-schematics.sh -b -copy -debug
 if [[ ${DEBUG} == true ]]; then
   cd ../../
   DEBUG_FROM=${PWD}/work/delon/dist/ng-alain/*
-  DEBUG_TO=${PWD}/work/ng7/node_modules/ng-alain/
+  DEBUG_TO=${PWD}/work/ng8/node_modules/ng-alain/
   echo "DEBUG_FROM:${DEBUG_FROM}"
   echo "DEBUG_TO:${DEBUG_TO}"
   rm -rf ${DEBUG_TO}/application

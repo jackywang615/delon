@@ -1,34 +1,40 @@
-import { Component, OnInit } from '@angular/core';
-import { Marks, SliderValue } from 'ng-zorro-antd';
-import { ControlWidget } from '../../widget';
+import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Marks, SliderValue } from 'ng-zorro-antd/slider';
+import { ControlUIWidget } from '../../widget';
+import { SFSliderWidgetSchema } from './schema';
 
 @Component({
   selector: 'sf-slider',
   templateUrl: './slider.widget.html',
+  preserveWhitespaces: false,
+  encapsulation: ViewEncapsulation.None,
 })
-export class SliderWidget extends ControlWidget implements OnInit {
+export class SliderWidget extends ControlUIWidget<SFSliderWidgetSchema> implements OnInit {
   min: number;
   max: number;
   step: number;
-  marks: Marks;
+  marks: Marks | null;
   included: boolean;
 
   ngOnInit(): void {
-    this.min = this.schema.minimum || 0;
-    this.max = this.schema.maximum || 100;
-    this.step = this.schema.multipleOf || 1;
+    const { minimum, maximum, multipleOf } = this.schema;
+    this.min = minimum || 0;
+    this.max = maximum || 100;
+    this.step = multipleOf || 1;
 
-    this.marks = this.ui.marks || null;
-    const included = this.ui.included;
+    const { marks, included } = this.ui;
+    this.marks = marks || null;
     this.included = typeof included === 'undefined' ? true : included;
   }
 
   _formatter = (value: number) => {
-    if (this.ui.formatter) return this.ui.formatter(value);
+    const { formatter } = this.ui;
+    if (formatter) return formatter(value);
     return value;
-  }
+  };
 
   _afterChange(value: SliderValue) {
-    if (this.ui.afterChange) this.ui.afterChange(value);
+    const { afterChange } = this.ui;
+    if (afterChange) return afterChange(value);
   }
 }

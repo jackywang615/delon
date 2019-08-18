@@ -1,38 +1,37 @@
-import { Component } from '@angular/core';
-import { LocaleData } from '@delon/theme';
+import { Component, ViewEncapsulation } from '@angular/core';
 import { SFValue } from '../../interface';
 import { SFSchemaEnum } from '../../schema';
 import { getData } from '../../utils';
-import { ControlWidget } from '../../widget';
+import { ControlUIWidget } from '../../widget';
+import { SFCheckboxWidgetSchema } from './schema';
 
 @Component({
   selector: 'sf-checkbox',
   templateUrl: './checkbox.widget.html',
+  preserveWhitespaces: false,
+  encapsulation: ViewEncapsulation.None,
 })
-export class CheckboxWidget extends ControlWidget {
+export class CheckboxWidget extends ControlUIWidget<SFCheckboxWidgetSchema> {
   data: SFSchemaEnum[] = [];
   allChecked = false;
   indeterminate = false;
   grid_span: number;
-  labelTitle = ``;
+  labelTitle: string = ``;
   inited = false;
-
-  get l(): LocaleData {
-    return this.formProperty.root.widget.sfComp.locale;
-  }
 
   reset(value: SFValue) {
     this.inited = false;
-    getData(this.schema, this.ui, this.formProperty.formData).subscribe(list => {
+    getData(this.schema, this.ui, value).subscribe(list => {
       this.data = list;
       this.allChecked = false;
       this.indeterminate = false;
-      this.labelTitle = list.length === 0 ? '' : this.schema.title;
-      this.grid_span = this.ui.span && this.ui.span > 0 ? this.ui.span : 0;
+      this.labelTitle = list.length === 0 ? '' : (this.schema.title as string);
+      const { span } = this.ui;
+      this.grid_span = span && span > 0 ? span : 0;
 
       this.updateAllChecked();
       this.inited = true;
-      this.cd.detectChanges();
+      this.detectChanges();
     });
   }
 
@@ -53,8 +52,7 @@ export class CheckboxWidget extends ControlWidget {
     this.notifySet();
   }
 
-  onAllChecked(e: Event) {
-    e.stopPropagation();
+  onAllChecked() {
     this.data.forEach(item => (item.checked = this.allChecked));
     this.notifySet();
   }

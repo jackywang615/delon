@@ -1,13 +1,13 @@
-import { Component, Injector, NgModule, NgModuleFactoryLoader } from '@angular/core';
-import { fakeAsync, inject, TestBed } from '@angular/core/testing';
+import { Component, NgModule, NgModuleFactoryLoader } from '@angular/core';
+import { fakeAsync, TestBed, TestBedStatic } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { RouterTestingModule, SpyNgModuleFactoryLoader } from '@angular/router/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 import { DelonAuthModule } from '../../auth.module';
 import { DA_SERVICE_TOKEN, ITokenService } from '../interface';
 import { JWTGuard } from './jwt.guard';
 
 describe('auth: JWTGuard', () => {
-  let injector: Injector;
+  let injector: TestBedStatic;
   let srv: ITokenService;
   let router: Router;
 
@@ -40,7 +40,7 @@ describe('auth: JWTGuard', () => {
       ],
     });
     srv = injector.get(DA_SERVICE_TOKEN);
-    router = injector.get(Router);
+    router = injector.get<Router>(Router);
     srv.set({
       token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6ImNpcGNoayIsImFkbWluIjp0cnVlLCJleHAiOjQ2NzA0MDk2MDB9.IINuMTwqwCQP63fSQ-ZPgOEaE8lilrUceUX9Wy47PBk`,
     });
@@ -81,14 +81,14 @@ describe('auth: JWTGuard', () => {
     });
   });
 
-  it(`should be support load module route`, fakeAsync(
-    inject([NgModuleFactoryLoader], (loader: SpyNgModuleFactoryLoader) => {
-      loader.stubbedModules = { expected: AModule };
-      router.navigateByUrl('/lazy').then(res => {
-        expect(res).toBe(true);
-      });
-    }),
-  ));
+  it(`should be support load module route`, fakeAsync(() => {
+    // tslint:disable-next-line: deprecation
+    const loader = injector.get(NgModuleFactoryLoader);
+    loader.stubbedModules = { expected: AModule };
+    router.navigateByUrl('/lazy').then(res => {
+      expect(res).toBe(true);
+    });
+  }));
 });
 
 @Component({ template: '' })

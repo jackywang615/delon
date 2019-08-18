@@ -5,12 +5,13 @@ import { saveAs } from 'file-saver';
 
 @Directive({
   selector: '[down-file]',
+  exportAs: 'downFile',
   host: {
     '(click)': '_click()',
   },
-  exportAs: 'downFileDirective',
 })
 export class DownFileDirective {
+  private isFileSaverSupported = true;
   /** URL请求参数 */
   @Input('http-data') httpData: {};
   /** 请求类型 */
@@ -22,9 +23,9 @@ export class DownFileDirective {
   /** 成功回调 */
   @Output() readonly success = new EventEmitter<HttpResponse<Blob>>();
   /** 错误回调 */
-  @Output() readonly error = new EventEmitter<{}>();
+  @Output() readonly error = new EventEmitter<any>();
 
-  private getDisposition(data: string) {
+  private getDisposition(data: string | null) {
     const arr: Array<{}> = (data || '')
       .split(';')
       .filter(i => i.includes('='))
@@ -35,13 +36,31 @@ export class DownFileDirective {
         if (value.startsWith(utfId)) value = value.substr(utfId.length);
         return { [strArr[0].trim()]: value };
       });
-    return arr.reduce((o, item) => item, {});
+    return arr.reduce((_o, item) => item, {});
   }
 
-  constructor(private el: ElementRef, private _http: _HttpClient) {}
+  constructor(private el: ElementRef<HTMLButtonElement>, private _http: _HttpClient) {
+    let isFileSaverSupported = false;
+    try {
+      isFileSaverSupported = !!new Blob();
+    } catch {}
+    this.isFileSaverSupported = isFileSaverSupported;
+    if (!isFileSaverSupported) {
+      el.nativeElement.classList.add(`down-file__not-support`);
+    }
+  }
+
+  private setDisabled(status: boolean): void {
+    const el = this.el.nativeElement;
+    el.disabled = status;
+    el.classList[status ? 'add' : 'remove'](`down-file__disabled`);
+  }
 
   _click() {
-    this.el.nativeElement.disabled = true;
+    if (!this.isFileSaverSupported) {
+      return;
+    }
+    this.setDisabled(true);
     this._http
       .request(this.httpMethod, this.httpUrl, {
         params: this.httpData || {},
@@ -50,7 +69,7 @@ export class DownFileDirective {
       })
       .subscribe(
         (res: HttpResponse<Blob>) => {
-          if (res.status !== 200 || res.body.size <= 0) {
+          if (res.status !== 200 || res.body!.size <= 0) {
             this.error.emit(res);
             return;
           }
@@ -63,12 +82,9 @@ export class DownFileDirective {
             res.headers.get('x-filename');
           saveAs(res.body, decodeURI(fileName));
           this.success.emit(res);
-          this.el.nativeElement.disabled = false;
         },
-        err => {
-          this.error.emit(err);
-          this.el.nativeElement.disabled = false;
-        },
+        err => this.error.emit(err),
+        () => this.setDisabled(false),
       );
   }
 }

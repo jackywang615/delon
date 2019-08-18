@@ -33,7 +33,8 @@ Property     | Description                  | Type      | Default
 
 Property     | Description                  | Type      | Default
 -------------|------------------------------|-----------|--------
-`[size]`        | Size of the `nz-date-picker`  | `string` | -
+`[mode]`        | Render mode | `date,week,month,year` | `date`
+`[size]`        | Size of the `nz-date-picker`  | `default,large,small` | -
 `[placeholder]` | Placeholder of date input | `string` | -
 `[displayFormat]` | Display format([nzFormat](https://ng.ant.design/components/date-picker/en#api)) | `string` | `yyyy-MM-dd HH:mm:ss`
 `[end]` | End `key` value for the date range | `string` | -
@@ -46,6 +47,6 @@ Property     | Description                  | Type      | Default
 `[onOpenChange]` | a callback emitter, can be executed whether the popup calendar is popped up or closed | `(status: boolean) => void` | -
 `[disabledTime]` | to specify the time that cannot be selected | `(current: Date) => { nzDisabledHours, nzDisabledMinutes, nzDisabledSeconds }` | -
 `[renderExtraFooter]` | render extra footer in panel | `string` | -
-`[showTime]` | to provide an additional time selection | `boolean` | `true`
+`[showTime]` | to provide an additional time selection, the `object` type is [TimePickerOptions](https://ng.ant.design/components/time-picker/en#api) | `object,boolean` | `true`
 `[showToday]` | whether to show "Today" button | `boolean` | `true`
-`[onOk]` | callback when click ok button | `(data: Data | Data[]) => void` | -
+`[onOk]` | callback when click ok button | `(data: Date | Date[]) => void` | -

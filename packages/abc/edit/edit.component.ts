@@ -14,6 +14,7 @@ import {
   Renderer2,
   TemplateRef,
   ViewChild,
+  ViewEncapsulation,
 } from '@angular/core';
 import { FormControlName, NgModel } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -28,25 +29,29 @@ let nextUniqueId = 0;
 
 @Component({
   selector: 'se',
+  exportAs: 'se',
   templateUrl: './edit.component.html',
   host: {
     '[style.padding-left.px]': 'paddingValue',
     '[style.padding-right.px]': 'paddingValue',
     '[class.ant-form-item-with-help]': 'showErr',
   },
+  preserveWhitespaces: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
 })
 export class SEComponent implements OnChanges, AfterContentInit, AfterViewInit, OnDestroy {
   private el: HTMLElement;
   private status$: Subscription;
-  @ContentChild(NgModel) private readonly ngModel: NgModel;
-  @ContentChild(FormControlName) private readonly formControlName: FormControlName;
-  @ViewChild('contentElement') private readonly contentElement: ElementRef;
+  @ContentChild(NgModel, { static: true }) private readonly ngModel: NgModel;
+  @ContentChild(FormControlName, { static: true })
+  private readonly formControlName: FormControlName;
+  @ViewChild('contentElement', { static: true }) private readonly contentElement: ElementRef;
   private clsMap: string[] = [];
   private inited = false;
   private onceFlag = false;
   invalid = false;
-  _labelWidth = null;
+  _labelWidth: number | null = null;
 
   // #region fields
 
@@ -99,13 +104,10 @@ export class SEComponent implements OnChanges, AfterContentInit, AfterViewInit, 
 
   private setClass(): this {
     const { el, ren, clsMap, col, parent, cdr, line, labelWidth, rep } = this;
-    this._labelWidth = labelWidth != null ? labelWidth : parent.labelWidth;
+    this._labelWidth = parent.nzLayout === 'horizontal' ? (labelWidth != null ? labelWidth : parent.labelWidth) : null;
     clsMap.forEach(cls => ren.removeClass(el, cls));
     clsMap.length = 0;
-    const repCls =
-      parent.nzLayout === 'horizontal'
-        ? rep.genCls(col != null ? col : parent.colInCon || parent.col)
-        : [];
+    const repCls = parent.nzLayout === 'horizontal' ? rep.genCls(col != null ? col : parent.colInCon || parent.col) : [];
     clsMap.push(`ant-form-item`, ...repCls, `${prefixCls}__item`);
     if (line || parent.line) {
       clsMap.push(`${prefixCls}__line`);
@@ -118,15 +120,10 @@ export class SEComponent implements OnChanges, AfterContentInit, AfterViewInit, 
   private bindModel() {
     if (!this.ngControl || this.status$) return;
 
-    this.status$ = this.ngControl.statusChanges.subscribe(res =>
-      this.updateStatus(res === 'INVALID'),
-    );
+    this.status$ = this.ngControl.statusChanges!.subscribe(res => this.updateStatus(res === 'INVALID'));
 
     if (this._autoId) {
-      const control = deepGet(
-        this.ngControl.valueAccessor,
-        '_elementRef.nativeElement',
-      ) as HTMLElement;
+      const control = deepGet(this.ngControl.valueAccessor, '_elementRef.nativeElement') as HTMLElement;
       if (control) {
         control.id = this._id;
       }
@@ -137,7 +134,7 @@ export class SEComponent implements OnChanges, AfterContentInit, AfterViewInit, 
     if (this.ngControl.disabled || this.ngControl.isDisabled) {
       return;
     }
-    this.invalid = (invalid && this.onceFlag) || (this.ngControl.dirty && invalid);
+    this.invalid = ((invalid && this.onceFlag) || (this.ngControl.dirty && invalid)) as boolean;
     this.cdr.detectChanges();
   }
 
@@ -165,7 +162,7 @@ export class SEComponent implements OnChanges, AfterContentInit, AfterViewInit, 
     this.inited = true;
     if (this.onceFlag) {
       Promise.resolve().then(() => {
-        this.updateStatus(this.ngControl.invalid);
+        this.updateStatus(this.ngControl.invalid!);
         this.onceFlag = false;
       });
     }

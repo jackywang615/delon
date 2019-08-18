@@ -1,14 +1,6 @@
 import { Component, DebugElement, EventEmitter, ViewChild } from '@angular/core';
 import { fakeAsync, inject, tick, ComponentFixture, TestBed } from '@angular/core/testing';
-import {
-  FormsModule,
-  FormBuilder,
-  FormControlName,
-  FormGroup,
-  NgModel,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormsModule, FormBuilder, FormControlName, FormGroup, NgModel, ReactiveFormsModule, Validators } from '@angular/forms';
 import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { configureTestSuite, createTestContext } from '@delon/testing';
@@ -74,18 +66,25 @@ describe('abc: edit', () => {
           });
           describe('#labelWidth', () => {
             it('should working', () => {
+              context.parent_layout = 'horizontal';
               context.labelWidth = 20;
               context.label = 'aa';
               fixture.detectChanges();
-              expect(page.getEl(prefixCls + 'label').style.width).toBe(`${context.labelWidth}px`);
+              expect(page.getEl('.ant-form-item-label').style.width).toBe(`${context.labelWidth}px`);
             });
             it('should be inherit parent labelWidth value', () => {
+              context.parent_layout = 'horizontal';
               context.parent_labelWidth = 20;
               context.label = 'aa';
               fixture.detectChanges();
-              expect(page.getEl(prefixCls + 'label').style.width).toBe(
-                `${context.parent_labelWidth}px`,
-              );
+              expect(page.getEl('.ant-form-item-label').style.width).toBe(`${context.parent_labelWidth}px`);
+            });
+            it('should be ingore width when layout not horizontal', () => {
+              context.parent_layout = 'inline';
+              context.parent_labelWidth = 20;
+              context.label = 'aa';
+              fixture.detectChanges();
+              expect(page.getEl('.ant-form-item-label').style.width).toBe(``);
             });
           });
           it('#layout', () => {
@@ -170,7 +169,7 @@ describe('abc: edit', () => {
       describe('[validate]', () => {
         let ngModel: NgModel;
         it('should be show error', () => {
-          ngModel = dl.query(By.directive(NgModel)).injector.get(NgModel);
+          ngModel = dl.query(By.directive(NgModel)).injector.get<NgModel>(NgModel);
           spyOnProperty(ngModel, 'dirty').and.returnValue(true);
           const changes = ngModel.statusChanges as EventEmitter<string>;
           // mock statusChanges
@@ -244,7 +243,7 @@ describe('abc: edit', () => {
       dl = fixture2.debugElement;
       fixture2.detectChanges();
       page = new PageObject();
-      const formControlName = dl.query(By.directive(FormControlName)).injector.get(FormControlName);
+      const formControlName = dl.query(By.directive(FormControlName)).injector.get<FormControlName>(FormControlName);
       const changes = formControlName.statusChanges as EventEmitter<string>;
       spyOnProperty(formControlName, 'dirty').and.returnValue(true);
       // mock statusChanges
@@ -259,7 +258,7 @@ describe('abc: edit', () => {
         genModule();
         context.disabled = true;
         fixture.detectChanges();
-        ngModel = dl.query(By.directive(NgModel)).injector.get(NgModel);
+        ngModel = dl.query(By.directive(NgModel)).injector.get<NgModel>(NgModel);
         const changes = ngModel.statusChanges as EventEmitter<string>;
         changes.emit('INVALID');
         page.expect('se-error', 0);
@@ -274,7 +273,7 @@ describe('abc: edit', () => {
         fixture2.detectChanges();
         page = new PageObject();
         const allControls = dl.queryAll(By.directive(FormControlName));
-        const formControlName = allControls[1].injector.get(FormControlName);
+        const formControlName = allControls[1].injector.get<FormControlName>(FormControlName);
         const changes = formControlName.statusChanges as EventEmitter<string>;
         // mock statusChanges
         changes.emit('VALID');
@@ -401,15 +400,15 @@ describe('abc: edit', () => {
   `,
 })
 class TestComponent {
-  @ViewChild('seComp')
+  @ViewChild('seComp', { static: true })
   seComp: SEContainerComponent;
-  @ViewChild('viewComp')
+  @ViewChild('viewComp', { static: true })
   viewComp: SEComponent;
 
-  parent_gutter: number = 32;
-  parent_colInCon: number;
-  parent_col: number = 3;
-  parent_labelWidth: number = null;
+  parent_gutter: number | null = 32;
+  parent_colInCon: number | null;
+  parent_col: number | null = 3;
+  parent_labelWidth: number | null = null;
   parent_layout: 'horizontal' | 'vertical' | 'inline' = 'horizontal';
   parent_size: 'default' | 'compact' = 'default';
   parent_firstVisual = true;
@@ -421,11 +420,11 @@ class TestComponent {
   error: string = 'required';
   extra: string;
   label: string;
-  required: boolean;
-  line: boolean;
-  col: number;
+  required: boolean | null;
+  line: boolean | null;
+  col: number | null;
   controlClass = '';
-  labelWidth = null;
+  labelWidth: number | null = null;
 
   val = '';
   showModel = true;

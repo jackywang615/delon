@@ -1,11 +1,5 @@
 import { Type } from '@angular/core';
-import {
-  discardPeriodicTasks,
-  flush,
-  tick,
-  ComponentFixture,
-  TestBed,
-} from '@angular/core/testing';
+import { discardPeriodicTasks, flush, tick, ComponentFixture, TestBed } from '@angular/core/testing';
 
 export type PageG2Type = 'geoms' | 'views';
 
@@ -13,14 +7,14 @@ export const PageG2DataCount = 2;
 export const PageG2Height = 100;
 
 export class PageG2<T> {
-  constructor(public fixture: ComponentFixture<T> = null) {}
+  constructor(public fixture: ComponentFixture<T> | null = null) {}
 
   get dl() {
-    return this.fixture.debugElement;
+    return this.fixture!.debugElement;
   }
 
   get context() {
-    return this.fixture.componentInstance;
+    return this.fixture!.componentInstance;
   }
 
   get comp() {
@@ -65,8 +59,8 @@ export class PageG2<T> {
   }
 
   dc() {
-    this.fixture.changeDetectorRef.markForCheck();
-    this.fixture.detectChanges();
+    this.fixture!.changeDetectorRef.markForCheck();
+    this.fixture!.detectChanges();
     return this;
   }
 
@@ -93,7 +87,7 @@ export class PageG2<T> {
   }
 
   getEl(cls: string): HTMLElement {
-    return (this.dl.nativeElement as HTMLElement).querySelector(cls);
+    return (this.dl.nativeElement as HTMLElement).querySelector(cls) as HTMLElement;
   }
 
   isCanvas(stauts: boolean = true): this {
@@ -103,7 +97,7 @@ export class PageG2<T> {
 
   isText(cls: string, value: string) {
     const el = this.getEl(cls);
-    expect(el ? el.textContent.trim() : '').toBe(value);
+    expect(el ? el.textContent!.trim() : '').toBe(value);
     return this;
   }
 
@@ -143,7 +137,7 @@ export class PageG2<T> {
     return this;
   }
 
-  checkTooltip(includeText: string, point?: { x: number; y: number }) {
+  checkTooltip(includeText: string | null, point?: { x: number; y: number }) {
     if (!point) {
       const g2El = this.dl.nativeElement as HTMLElement;
       point = {
@@ -157,7 +151,7 @@ export class PageG2<T> {
       expect(el == null).toBe(true, `Shoule be not found g2-tooltip element`);
     } else {
       expect(el != null).toBe(true, `Shoule be has g2-tooltip element`);
-      const text = el.textContent.trim();
+      const text = el.textContent!.trim();
       expect(text.includes(includeText)).toBe(
         true,
         `Shoule be include "${includeText}" text of tooltip text context "${text}"`,
@@ -167,7 +161,7 @@ export class PageG2<T> {
   }
 }
 
-export function checkDelay<M, T>(module: M, comp: Type<T>, page: PageG2<T> = null) {
+export function checkDelay<M, T>(module: M, comp: Type<T>, page: PageG2<T> | null = null) {
   if (page == null) {
     page = new PageG2<T>().makeModule(module, comp, { dc: false });
   }
